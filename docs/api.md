@@ -5,7 +5,9 @@ Two audiences use this API:
 - **The hub** (the simulator now, the ESP32 later) sends sensor events and fetches light commands. This is the contract between the firmware and the app. Change it only with both sides agreeing.
 - **The app** (phone and desktop) calls endpoints for actions with side effects. Plain reads go straight to Supabase with RLS; see [Reads vs. writes](#reads-vs-writes).
 
-All endpoints are Next.js route handlers under `app/api/`. Request and response bodies are JSON, validated with Zod schemas from `lib/api/`.
+All endpoints are Next.js route handlers under `app/api/`. Request and response bodies are JSON, validated with Zod schemas from `lib/api/`. **Those schemas are the contract between frontend and backend:** route handlers parse requests with them, and the UI imports their types. Change a schema and this doc in the same PR, reviewed by both sides.
+
+Conventions for values: dates are `YYYY-MM-DD` in the closet's timezone, timestamps are ISO 8601 with offset, money is in cents, row ids are uuids, and hangers are addressed by **number** in URLs and hub payloads.
 
 > Status: specification. Nothing is implemented yet.
 
@@ -49,6 +51,7 @@ Every non-2xx response has the same shape:
 | 404 | `not_found` (unknown hanger number, garment, job) |
 | 409 | `conflict` (hanger already assigned, duplicate decision) |
 | 429 | `rate_limited` |
+| 500 | `internal_error` (unexpected server failure) |
 | 502 | `upstream_error` (FASHN or Anthropic failed) |
 
 ### Hanger identity
@@ -178,18 +181,23 @@ All app endpoints act on the caller's closet. A user with several closets passes
 
 | Method & path | Body | Does |
 | --- | --- | --- |
-| `POST /api/plans/generate` | `{ week_start: "2026-10-26", replace?: boolean }` | Runs the planner with forecast, events, laundry and history. Returns the plan |
-| `POST /api/plans/{id}/lights` | `{ day: "2026-10-26" }` | Pushes `purple/steady` for that day's hangers and turns other purple hangers off. In the MVP, the Plan screen's "Light up tomorrow" button calls it; after MVP, a morning cron does too |
+| `POST /api/plans/generate` | `{ week_start: "2026-10-26", replace?: boolean }` | Runs the planner with forecast, events, laundry and history. `week_start` is a Monday. `200 { plan_id }` |
+| `POST /api/plans/{id}/lights` | `{ day: "2026-10-26" }` | Pushes `purple/steady` for that day's hangers and turns other purple hangers off. `202 { command_ids: number[], hangers: number[] }`. In the MVP, the Plan screen's "Light up tomorrow" button calls it; after MVP, a morning cron does too |
 | `PATCH /api/plan-items/{id}` *(after MVP)* | `{ garment_id }` or `{ status: "skipped" }` | Swap a piece or skip a day. Recorded as planner feedback |
+
+`generate` only returns the plan id. The UI reads the plan from `plans` and `plan_items` with supabase-js, so a plan has one shape. `plans.forecast` is `jsonb`; its shape is the `Forecast` schema in `lib/api/plans.ts`: per day `{ day, high_c, low_c, rain, condition: "clear" | "cloudy" | "rain" | "snow", summary }`.
 
 ### Swipe
 
 | Method & path | Body | Does |
 | --- | --- | --- |
-| `GET /api/swipe/deck` | – | Returns ordered candidates and queues `amber/breathe` for the top card's hanger |
-| `POST /api/swipe/decisions` | `{ garment_id, decision: "keep" \| "let_go" \| "style", route?: "donate" \| "resell" \| "swap" }` | Records the decision. `keep` starts a 30-day challenge and boosts the item in next week's plan. `let_go` sets the garment to `let_go` and keeps the hanger amber until the garment leaves. `resell` returns listing text built from the garment's tags |
+| `GET /api/swipe/deck` | – | Returns ordered candidates and queues `amber/breathe` for the top card's hanger. `200 { cards: SwipeCard[], lit_hanger: number \| null }` |
+| `POST /api/swipe/decisions` | `{ garment_id, decision: "keep" \| "let_go" \| "style", route?: "donate" \| "resell" \| "swap" }` | Records the decision. `route` is required for `let_go` and ignored otherwise. `keep` starts a 30-day challenge and boosts the item in next week's plan. `let_go` sets the garment to `let_go` and keeps the hanger amber until the garment leaves. `200 { garment_status, challenge_until: string \| null, listing: Listing \| null }`; `listing` is set for `resell` |
 
 The deck is an endpoint, not a plain read, because it calls the seasonal-idle logic and lights the hanger.
+
+- **`SwipeCard`:** `garment_id`, `hanger_number` (nullable), `name` (nullable: no photo or tags yet), `photo_path` (nullable), `category` (nullable), `idle_days_in_season`, `browsed_count`, `wears_90d`, `waiting_since` (`YYYY-MM-DD`: last wear, or when the garment was added; for copy like "waiting since March"), `price_cents` (nullable).
+- **`Listing`:** `{ title, body, price_min_cents, price_max_cents }`.
 
 ### Try-on (FASHN, after MVP)
 
