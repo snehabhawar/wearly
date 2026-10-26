@@ -1,7 +1,7 @@
+import { ClosetView } from "@/components/closet-view";
+import { FIXTURE_CLOSET, FIXTURE_SUMMARY } from "@/lib/queries/fixtures";
+
+// Fixture data until reads are wired up (backend B1/B2)
 export default function ClosetPage() {
-  return (
-    <div className="px-5 pt-7 md:px-10 md:pt-8">
-      <h1 className="text-3xl font-semibold md:text-[40px]">Your closet</h1>
-    </div>
-  );
+  return <ClosetView items={FIXTURE_CLOSET} summary={FIXTURE_SUMMARY} />;
 }
