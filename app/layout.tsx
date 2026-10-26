@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Zilla_Slab } from "next/font/google";
 import "./globals.css";
 
@@ -22,6 +22,10 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Wearly",
   description: "Smart hangers that notice what you actually wear.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#5b2a6e",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

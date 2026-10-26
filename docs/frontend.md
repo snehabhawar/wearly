@@ -145,7 +145,7 @@ Use relative, human dates ("since March," "9 days ago") in the UI, with exact da
 
 ## PWA
 
-- **MVP:** `app/manifest.ts` with name "Wearly", `display: "standalone"`, theme color `#5B2A6E`, background `#FBF7F3`, and icons from the starburst logo. That's enough for "Add to Home Screen."
+- **MVP:** `app/manifest.ts` with name "Wearly", `start_url: "/today"`, `display: "standalone"`, theme color `#5B2A6E`, background `#FBF7F3`. Icons use the starburst logo: `public/icon.svg` and `public/icon-maskable.svg` for the manifest, `app/icon.svg` as the favicon, and `app/apple-icon.tsx`, which renders a 180 px PNG because iOS ignores SVG icons. That's enough for "Add to Home Screen."
 - **After MVP:** a service worker for an offline shell and web push (the Sunday "plan your week?" prompt). On iOS, push only works after the app is added to the home screen (iOS 16.4+).
 - **NFC (after MVP):** stickers hold `https://<app>/h/<number>`. iOS and Android open these natively, so no Web NFC is needed. Write the stickers once with a free app such as NFC Tools.
 
