@@ -17,6 +17,7 @@ This repo holds the **web app, API and backend**. The hardware isn't built yet, 
 | [docs/frontend.md](docs/frontend.md) | Routes, layouts, design tokens, components, data fetching, PWA |
 | [docs/backend.md](docs/backend.md) | Data model, RLS, wear engine, planner, swipe deck, AI jobs |
 | [docs/api.md](docs/api.md) | Hub contract (for firmware), app endpoints, error format |
+| [docs/working-together.md](docs/working-together.md) | Frontend/backend contract, folder ownership, Git workflow, and the task split |
 
 Each doc starts with an **MVP scope** section. Anything marked *after MVP* is the long-term spec: don't build it until the MVP is done.
 
