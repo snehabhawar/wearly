@@ -1,5 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
-import { localDate } from '../lib/wear-engine'
+import { randomUUID } from 'node:crypto'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { localDate, replayHanger, WEAR_PROFILES } from '../lib/wear-engine'
 
 const CLOSET_ID = '00000000-0000-0000-0000-0000000000c1'
 const DAYS = 90
@@ -162,86 +163,166 @@ function dropOverlaps(sessions: Session[]): Session[] {
   return kept
 }
 
-function toEvents(sessions: Session[]) {
-  const seq = new Map<number, number>()
-  const next = (h: number) => { const n = (seq.get(h) ?? 0) + 1; seq.set(h, n); return n }
-  const events: any[] = []
-  for (const s of sessions) {
-    const hid = (n: number) => `00000000-0000-0000-0000-0000000001${String(n).padStart(2, '0')}`
-    events.push({ hanger_number: s.hanger, hanger_id: hid(s.hanger), on_rail: true, garment_on: false,
-      at: s.leftAt })
-    if (s.returnedAt) {
-      events.push({ hanger_number: s.hanger, hanger_id: hid(s.hanger), on_rail: true, garment_on: true,
-        at: s.returnedAt })
-    }
-  }
-  // seq is per hanger, in time order
-  events.sort((a, b) => a.at - b.at)
-  return events.map(e => ({
-    closet_id: CLOSET_ID,
-    device_id: '00000000-0000-0000-0000-0000000000d1',
-    hanger_id: e.hanger_id,
-    on_rail: e.on_rail,
-    garment_on: e.garment_on,
-    seq: next(e.hanger_number),
-    occurred_at: new Date(e.at).toISOString(),
-    received_at: new Date(e.at).toISOString(),
-  }))
+type HangerRow = { id: string; number: number }
+type AssignmentRow = { hanger_id: string; garment_id: string; started_at: string; ended_at: string | null }
+type Seeded = { ctx: Ctx; hangers: HangerRow[]; assignments: AssignmentRow[] }
+
+type SensorEventRow = {
+  closet_id: string
+  device_id: string
+  hanger_id: string
+  on_rail: boolean
+  garment_on: boolean
+  seq: number
+  occurred_at: string
+  received_at: string
 }
 
-// Closet timezone and the rehome times seeded in hanger_assignments
-async function loadCtx(db: ReturnType<typeof createClient>): Promise<Ctx> {
+function toEvents(sessions: Session[], hangers: HangerRow[]): SensorEventRow[] {
+  const idOf = new Map(hangers.map(h => [h.number, h.id]))
+  const raw: { hanger: number; garmentOn: boolean; at: number }[] = []
+  for (const s of sessions) {
+    raw.push({ hanger: s.hanger, garmentOn: false, at: s.leftAt })
+    if (s.returnedAt !== null) raw.push({ hanger: s.hanger, garmentOn: true, at: s.returnedAt })
+  }
+  // seq is per hanger, in time order
+  raw.sort((a, b) => a.at - b.at)
+  const seq = new Map<number, number>()
+  return raw.map(e => {
+    const n = (seq.get(e.hanger) ?? 0) + 1
+    seq.set(e.hanger, n)
+    const at = new Date(e.at).toISOString()
+    return {
+      closet_id: CLOSET_ID,
+      device_id: '00000000-0000-0000-0000-0000000000d1',
+      hanger_id: idOf.get(e.hanger)!,
+      on_rail: true,
+      garment_on: e.garmentOn,
+      seq: n,
+      occurred_at: at,
+      received_at: at,
+    }
+  })
+}
+
+// Closet timezone, hangers, and the assignments (with rehome times) from seed.sql
+async function loadSeeded(db: SupabaseClient): Promise<Seeded> {
   const closet = await db.from('closets').select('timezone').eq('id', CLOSET_ID).single()
+    .overrideTypes<{ timezone: string }, { merge: false }>()
   if (closet.error) throw closet.error
   const hangers = await db.from('hangers').select('id, number').eq('closet_id', CLOSET_ID)
+    .overrideTypes<HangerRow[], { merge: false }>()
   if (hangers.error) throw hangers.error
   const assignments = await db.from('hanger_assignments')
-    .select('hanger_id, started_at, ended_at')
+    .select('hanger_id, garment_id, started_at, ended_at')
     .in('hanger_id', hangers.data.map(h => h.id))
+    .overrideTypes<AssignmentRow[], { merge: false }>()
   if (assignments.error) throw assignments.error
 
-  const numberOf = new Map(hangers.data.map(h => [h.id as string, h.number as number]))
+  const numberOf = new Map(hangers.data.map(h => [h.id, h.number]))
   const ms = (t: string) => new Date(t).getTime()
-  const rehomes = assignments.data
-    .filter(a => a.ended_at !== null)
-    .map(ended => {
-      const endedAt = ms(ended.ended_at)
-      const nextStarts = assignments.data
-        .filter(a => a.hanger_id === ended.hanger_id && ms(a.started_at) >= endedAt)
-        .map(a => ms(a.started_at))
-        .sort((a, b) => a - b)
-      return { hanger: numberOf.get(ended.hanger_id)!, endedAt, nextStartedAt: nextStarts[0] ?? null }
+  const rehomes = assignments.data.flatMap(ended => {
+    if (ended.ended_at === null) return []
+    const endedAt = ms(ended.ended_at)
+    const nextStarts = assignments.data
+      .filter(a => a.hanger_id === ended.hanger_id && ms(a.started_at) >= endedAt)
+      .map(a => ms(a.started_at))
+      .sort((a, b) => a - b)
+    return [{ hanger: numberOf.get(ended.hanger_id)!, endedAt, nextStartedAt: nextStarts[0] ?? null }]
+  })
+  return {
+    ctx: { now: Date.now(), timeZone: closet.data.timezone, rehomes },
+    hangers: hangers.data,
+    assignments: assignments.data,
+  }
+}
+
+async function insertAll(db: SupabaseClient, table: string, rows: object[]) {
+  for (let i = 0; i < rows.length; i += 500) {
+    const { error } = await db.from(table).insert(rows.slice(i, i + 500))
+    if (error) throw error
+  }
+}
+
+// Rebuilds absences, wears and each hanger's current state from the events.
+// Uses the REAL thresholds: the history spans hours and days, not demo seconds.
+async function replayWithEngine(db: SupabaseClient, seeded: Seeded, events: SensorEventRow[]) {
+  const { ctx } = seeded
+  const absences: object[] = []
+  const wears: object[] = []
+  const counts: Record<string, number> = {}
+
+  for (const hanger of seeded.hangers) {
+    const result = replayHanger({
+      events: events
+        .filter(e => e.hanger_id === hanger.id)
+        .map(e => ({ onRail: e.on_rail, garmentOn: e.garment_on, occurredAt: new Date(e.occurred_at) })),
+      assignments: seeded.assignments
+        .filter(a => a.hanger_id === hanger.id)
+        .map(a => ({
+          garmentId: a.garment_id,
+          startedAt: new Date(a.started_at),
+          endedAt: a.ended_at === null ? null : new Date(a.ended_at),
+        })),
+      profile: WEAR_PROFILES.real,
+      timeZone: ctx.timeZone,
+      now: new Date(ctx.now),
     })
-  return { now: Date.now(), timeZone: closet.data.timezone, rehomes }
+
+    const ids = result.absences.map(() => randomUUID())
+    result.absences.forEach((a, i) => {
+      counts[a.classification] = (counts[a.classification] ?? 0) + 1
+      absences.push({
+        id: ids[i],
+        closet_id: CLOSET_ID,
+        hanger_id: hanger.id,
+        garment_id: a.garmentId,
+        left_at: a.leftAt.toISOString(),
+        returned_at: a.returnedAt?.toISOString() ?? null,
+        classification: a.classification,
+      })
+    })
+    for (const w of result.wears) {
+      wears.push({
+        closet_id: CLOSET_ID,
+        garment_id: w.garmentId,
+        worn_on: w.wornOn,
+        source: 'sensor',
+        absence_id: ids[w.absenceIndex],
+      })
+    }
+
+    if (result.finalState) {
+      const { error } = await db.from('hangers').update({
+        on_rail: result.finalState.onRail,
+        garment_on: result.finalState.garmentOn,
+        state_changed_at: result.finalState.occurredAt.toISOString(),
+      }).eq('id', hanger.id)
+      if (error) throw error
+    }
+  }
+
+  await insertAll(db, 'absences', absences)
+  await insertAll(db, 'wears', wears)
+  console.log(`replayed ${absences.length} absences ${JSON.stringify(counts)} and ${wears.length} wears`)
 }
 
 async function main() {
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-  // Idempotent: clear derived + raw data for this closet first
-  await db.from('wears').delete().in('garment_id',
-    (await db.from('garments').select('id').eq('closet_id', CLOSET_ID)).data!.map(g => g.id))
-  await db.from('absences').delete().in('hanger_id',
-    (await db.from('hangers').select('id').eq('closet_id', CLOSET_ID)).data!.map(h => h.id))
-  await db.from('sensor_events').delete().eq('closet_id', CLOSET_ID)
-
-  const events = toEvents(build(await loadCtx(db)))
-  for (let i = 0; i < events.length; i += 500) {
-    const { error } = await db.from('sensor_events').insert(events.slice(i, i + 500))
+  // Idempotent: clear this closet's derived data, then its raw events (dev seed only;
+  // sensor_events is otherwise append-only)
+  for (const table of ['wears', 'absences', 'sensor_events']) {
+    const { error } = await db.from(table).delete().eq('closet_id', CLOSET_ID)
     if (error) throw error
   }
+
+  const seeded = await loadSeeded(db)
+  const events = toEvents(build(seeded.ctx), seeded.hangers)
+  await insertAll(db, 'sensor_events', events)
   console.log(`inserted ${events.length} sensor events`)
 
-  await replayWithEngine(db, events)
-}
-
-// TODO: wire to lib/wear-engine once it exists.
-// Must use the REAL thresholds here, not the closet's demo profile.
-async function replayWithEngine(_db: any, _events: any[]) {
-  // import { processHangerEvents, REAL_PROFILE } from '../lib/wear-engine'
-  // group by hanger, run in occurred_at order, write absences + wears,
-  // then mark rehomed garments and set final hanger state (on_rail/garment_on).
-  throw new Error('replayWithEngine not wired up yet')
+  await replayWithEngine(db, seeded, events)
 }
 
 main().catch(e => { console.error(e); process.exit(1) })
