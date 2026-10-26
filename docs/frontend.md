@@ -55,7 +55,7 @@ Route groups: `app/(marketing)` for the homepage (no app shell), `app/(app)` for
 
 ## Design tokens
 
-Taken from the mockup. Define them once as CSS variables in `app/globals.css` and map them in the Tailwind config, so components use names like `bg-plum`, not hex codes.
+Taken from the mockup. They are defined once as CSS variables in `app/globals.css` and mapped to Tailwind with `@theme`, so components use names like `bg-plum`, not hex codes. The shadcn/ui semantic colors (`primary`, `secondary`, `muted`, `border`…) point at the same palette, so stock components already look like Wearly.
 
 | Token | Value | Use |
 | --- | --- | --- |
@@ -68,20 +68,23 @@ Taken from the mockup. Define them once as CSS variables in `app/globals.css` an
 | `peach-soft` | `#FCEBDD` | "Waiting" cards, reasons |
 | `amber` | `#E39A2D` | Amber light dot |
 | `amber-ink` | `#8A4A06` | Amber text (passes contrast on cream) |
-| `muted` | `#6E5F73` | Secondary text |
+| `muted-foreground` | `#6E5F73` | Secondary text (shadcn name; `bg-muted` is `lilac`) |
 | `muted-strong` | `#5E4A66` | Body text on tinted backgrounds |
-| `line` | `#E6DCE8` | Borders |
+| `line` | `#E6DCE8` | Borders (also shadcn `border`) |
+| `line-strong` | `#D8CBDD` | Input and outline-button borders (also shadcn `input`) |
 | `led-purple` | `#8B5CC9` | Purple light dot |
-| Heat 0–3 | `#F3EEF5` `#E2D5EE` `#C4ABE0` `#9B74CC` | Wear-frequency shading on the closet grid |
+| `heat-0` … `heat-3` | `#F3EEF5` `#E2D5EE` `#C4ABE0` `#9B74CC` | Wear-frequency shading on the closet grid |
 
 **Type:**
-- Headings: **Zilla Slab** (600–700). Body: **Inter** (400–700).
-- Load both with `next/font/google`.
+- Headings: **Zilla Slab** (600–700), class `font-heading`; `h1`–`h3` get it by default. Body: **Inter** (400–700), the default `font-sans`.
+- All fonts load with `next/font/google` in `app/layout.tsx`.
 - Monospace (simulator only): JetBrains Mono.
 
-**Gradients:** purple-to-peach (`#E9DDF6 → #F8D9C6`). Use them only for the Today header, photo backdrops and the homepage CTA.
+**Gradients:** purple-to-peach (`#E9DDF6 → #F8D9C6`), the `bg-dawn` utility. Use it only for the Today header, photo backdrops and the homepage CTA.
 
-**Radii:** 12–14 px for buttons and tiles, 18–24 px for cards, full rounding for chips.
+**Radii:** `--radius` is 14 px. Use `rounded-lg` (14 px) for buttons and tiles, `rounded-xl`/`rounded-2xl` (20–25 px) for cards, and `rounded-full` for chips.
+
+**Dark mode:** none in the MVP.
 
 ## Light language in the UI
 
