@@ -103,6 +103,33 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Hanger light patterns (docs/frontend.md, Light language in the UI) */
+  --animate-led-breathe: led-breathe 3s ease-in-out infinite;
+  --animate-led-blink2: led-blink2 1.6s steps(1, end) infinite;
+
+  @keyframes led-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+
+  /* Two quick blinks, then a pause */
+  @keyframes led-blink2 {
+    0%,
+    25% {
+      opacity: 1;
+    }
+    12.5%,
+    37.5%,
+    100% {
+      opacity: 0.15;
+    }
+  }
 }
 
 /* Purple-to-peach wash: Today header, photo backdrops and the homepage CTA only */
