@@ -143,8 +143,8 @@ function build(ctx: Ctx): Session[] {
     out.push({ hanger: r.hanger, leftAt: finalLeave, returnedAt: r.nextStartedAt })
   }
 
-  // One garment currently away (open absence) so Today/Closet show something live
-  out.push({ hanger: 5, leftAt: ctx.now - 2 * HOUR, returnedAt: null })
+  // No garment is left away: the demo closet sweeps with the demo profile, which would
+  // mark anything out for more than a minute as missing as soon as /sim starts polling.
 
   return dropOverlaps(out)
 }
