@@ -120,7 +120,20 @@ function build(): Session[] {
   // One garment currently away (open absence) so Today/Closet show something live
   out.push({ hanger: 5, leftAt: NOW.getTime() - 2 * HOUR, returnedAt: null })
 
-  return out.sort((a, b) => a.leftAt - b.leftAt)
+  return dropOverlaps(out)
+}
+
+// A garment can't leave again before it came back: keep the earliest of any
+// overlapping sessions on a hanger, with a minute's gap between sessions.
+function dropOverlaps(sessions: Session[]): Session[] {
+  const freeAt = new Map<number, number>()
+  const kept: Session[] = []
+  for (const s of [...sessions].sort((a, b) => a.leftAt - b.leftAt)) {
+    if (s.leftAt < (freeAt.get(s.hanger) ?? -Infinity)) continue
+    kept.push(s)
+    freeAt.set(s.hanger, s.returnedAt === null ? Infinity : s.returnedAt + MIN)
+  }
+  return kept
 }
 
 function toEvents(sessions: Session[]) {
