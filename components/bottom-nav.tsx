@@ -2,26 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, GalleryVerticalEnd, LayoutGrid, Sun } from "lucide-react";
+import { isActive, NAV_ITEMS } from "@/components/nav-items";
 import { cn } from "@/lib/utils";
 
-const TABS = [
-  { href: "/today", label: "Today", Icon: Sun },
-  { href: "/closet", label: "Closet", Icon: LayoutGrid },
-  { href: "/plan", label: "Plan", Icon: CalendarDays },
-  { href: "/swipe", label: "Swipe", Icon: GalleryVerticalEnd },
-] as const;
-
+/** Phone navigation (< 768px). Desktop uses SidebarNav. */
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
     <nav
       aria-label="Main"
-      className="sticky bottom-0 flex h-19 shrink-0 items-center justify-around border-t border-line bg-card pb-[max(6px,env(safe-area-inset-bottom))]"
+      className="sticky bottom-0 flex h-19 shrink-0 items-center justify-around border-t border-line bg-card pb-[max(6px,env(safe-area-inset-bottom))] md:hidden"
     >
-      {TABS.map(({ href, label, Icon }) => {
-        const active = pathname === href || pathname.startsWith(`${href}/`);
+      {NAV_ITEMS.map(({ href, label, Icon }) => {
+        const active = isActive(pathname, href);
         return (
           <Link
             key={href}
