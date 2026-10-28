@@ -1,4 +1,5 @@
-create extension if not exists pgcrypto;
+-- Supabase keeps pgcrypto in the extensions schema, which the seed runner does not search
+create extension if not exists pgcrypto with schema extensions;
 
 -- Fixed IDs so the script and the app can refer to them
 do $$
@@ -15,7 +16,7 @@ begin
     email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
     confirmation_token, recovery_token, email_change, email_change_token_new)
   values (uid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-    'demo@wearly.app', crypt('wearly-demo', gen_salt('bf')), now(),
+    'demo@wearly.app', extensions.crypt('wearly-demo', extensions.gen_salt('bf')), now(),
     '{"provider":"email","providers":["email"]}', '{}', now(), now(), '', '', '', '')
   on conflict (id) do nothing;
 
@@ -32,7 +33,7 @@ begin
 
   -- Dev hub. Secret: dev-hub-secret (must match HUB_DEV_SECRET in .env.local)
   insert into devices (id, closet_id, kind, name, secret_hash)
-  values (did, cid, 'hub', 'Dev hub', encode(digest('dev-hub-secret', 'sha256'), 'hex'));
+  values (did, cid, 'hub', 'Dev hub', encode(extensions.digest('dev-hub-secret', 'sha256'), 'hex'));
 
   -- 24 hangers, all in the closet with lights off (scripts/seed-history.ts sets the final state)
   insert into hangers (id, closet_id, number, on_rail, garment_on)
