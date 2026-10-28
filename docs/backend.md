@@ -219,7 +219,7 @@ All of this runs in one transaction per event, through a Postgres function (`ing
 
 ## Seed data
 
-- `supabase/seed.sql`: a demo user (email + password), a closet (`wear_profile = demo`, with coordinates), one hub device with `HUB_DEV_SECRET`, 24 hangers, and 18 garments with hand-written tags and photos in `public/demo/` (matching the mockup). 6 hangers have no photo.
+- `supabase/seed.sql`: a demo user (email + password), a closet (`wear_profile = demo`, with coordinates), one hub device with `HUB_DEV_SECRET`, 24 hangers, and 18 garments with hand-written tags and photos in `public/demo/`. Hangers 19–24 have no photo. The garments don't follow the mockup's layout: the mockup is the visual spec, and screen content follows this seed.
 - `scripts/seed-history.ts`: generates about 3 months of plausible `sensor_events` and replays them, so stats look real. It includes:
   - a few clearly forgotten items (hangers 8, 12, 18 and 24),
   - one item that's often browsed but never worn (hanger 18),

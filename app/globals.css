@@ -1,26 +1,155 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
+/* No dark mode in the MVP: `dark:` classes only apply under a .dark class, which nothing sets. */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Wearly design tokens, taken from the mockup (see docs/frontend.md).
+ * Components use the Tailwind names (bg-plum, text-amber-ink), never hex codes.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #2a1530;
+  --plum: #5b2a6e;
+  --plum-soft: #f1e9f7;
+  --lilac: #f3eef5;
+  --cream: #fbf7f3;
+  --peach: #f8c9aa;
+  --peach-soft: #fcebdd;
+  --amber: #e39a2d;
+  --amber-ink: #8a4a06;
+  --muted-ink: #6e5f73;
+  --muted-strong: #5e4a66;
+  --line: #e6dce8;
+  --line-strong: #d8cbdd;
+  --led-purple: #8b5cc9;
+  --heat-0: #f3eef5;
+  --heat-1: #e2d5ee;
+  --heat-2: #c4abe0;
+  --heat-3: #9b74cc;
+
+  /* shadcn/ui semantic colors, mapped onto the Wearly palette */
+  --background: var(--cream);
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--plum);
+  --primary-foreground: #ffffff;
+  --secondary: var(--plum-soft);
+  --secondary-foreground: var(--plum);
+  --muted: var(--lilac);
+  --muted-foreground: var(--muted-ink);
+  --accent: var(--plum-soft);
+  --accent-foreground: var(--plum);
+  /* Errors only. Never use red for item status. */
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--plum);
+
+  /* 14px: buttons and tiles use rounded-lg, cards rounded-2xl (~25px) */
+  --radius: 0.875rem;
 }
 
 @theme inline {
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-zilla-slab);
+  --font-mono: var(--font-jetbrains-mono);
+
+  --color-ink: var(--ink);
+  --color-plum: var(--plum);
+  --color-plum-soft: var(--plum-soft);
+  --color-lilac: var(--lilac);
+  --color-cream: var(--cream);
+  --color-peach: var(--peach);
+  --color-peach-soft: var(--peach-soft);
+  --color-amber: var(--amber);
+  --color-amber-ink: var(--amber-ink);
+  --color-muted-strong: var(--muted-strong);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-led-purple: var(--led-purple);
+  --color-heat-0: var(--heat-0);
+  --color-heat-1: var(--heat-1);
+  --color-heat-2: var(--heat-2);
+  --color-heat-3: var(--heat-3);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Hanger light patterns (docs/frontend.md, Light language in the UI) */
+  --animate-led-breathe: led-breathe 3s ease-in-out infinite;
+  --animate-led-blink2: led-blink2 1.6s steps(1, end) infinite;
+
+  @keyframes led-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+
+  /* Two quick blinks, then a pause */
+  @keyframes led-blink2 {
+    0%,
+    25% {
+      opacity: 1;
+    }
+    12.5%,
+    37.5%,
+    100% {
+      opacity: 0.15;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Purple-to-peach wash: Today header, photo backdrops and the homepage CTA only */
+@utility bg-dawn {
+  background-image: linear-gradient(160deg, #e9ddf6 0%, #f8d9c6 100%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
+  }
 }
