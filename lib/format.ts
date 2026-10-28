@@ -16,6 +16,11 @@ export function formatMonth(date: string): string {
   return monthName.format(asUtc(date));
 }
 
+/** Today as YYYY-MM-DD in a timezone, e.g. the closet's */
+export function todayIn(timeZone: string, now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+}
+
 /** "March" for a date in today's year, "May 2025" for an earlier one. For copy like "waiting since March" */
 export function formatSince(date: string, today: string): string {
   return date.slice(0, 4) === today.slice(0, 4) ? formatMonth(date) : monthYear.format(asUtc(date));

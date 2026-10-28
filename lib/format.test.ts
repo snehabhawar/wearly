@@ -1,5 +1,11 @@
 import { expect, test } from "vitest";
-import { formatCents, formatMonth, formatMonthDay, formatSince } from "./format";
+import { formatCents, formatMonth, formatMonthDay, formatSince, todayIn } from "./format";
+
+test("today is the closet's local date, not UTC", () => {
+  // 02:30 UTC on Oct 28 is still the evening of Oct 27 in New York
+  expect(todayIn("America/New_York", new Date("2026-10-28T02:30:00Z"))).toBe("2026-10-27");
+  expect(todayIn("UTC", new Date("2026-10-28T02:30:00Z"))).toBe("2026-10-28");
+});
 
 test("dates format as written, without a timezone shift", () => {
   expect(formatMonthDay("2026-10-01")).toBe("Oct 1");

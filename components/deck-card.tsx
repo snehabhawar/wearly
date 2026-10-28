@@ -19,8 +19,8 @@ export function DeckCard({
   className,
 }: {
   card: SwipeCard;
-  /** YYYY-MM-DD in the closet's timezone, for "waiting since" */
-  today: string;
+  /** YYYY-MM-DD in the closet's timezone, for "waiting since". Null (before hydration): always name the year */
+  today: string | null;
   className?: string;
 }) {
   const known = card.name !== null || card.category !== null;
@@ -55,7 +55,7 @@ export function DeckCard({
           )}
         </div>
         <dl className="grid grid-cols-3 gap-2">
-          <Stat label="Waiting since" value={formatSince(card.waiting_since, today)} />
+          <Stat label="Waiting since" value={formatSince(card.waiting_since, today ?? "")} />
           <Stat label="Worn in 90 days" value={card.wears_90d} />
           <Stat label="Put back unworn" value={`${card.browsed_count}×`} />
         </dl>

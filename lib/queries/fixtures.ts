@@ -76,6 +76,9 @@ export const FIXTURE_SUMMARY: ClosetSummary = {
   rehomedThisYear: 3,
 };
 
+/** The seeded closet's timezone */
+export const FIXTURE_TIMEZONE = "America/New_York";
+
 /** When the seed adds every garment: about 14 months ago */
 const ADDED_ON = "2025-08-28";
 
