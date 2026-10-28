@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/logo";
 import { isActive, NAV_ITEMS } from "@/components/nav-items";
+import { SignOutButton } from "@/components/sign-out-button";
 import { cn } from "@/lib/utils";
 
 /** Desktop navigation (≥ 768px). Phones use BottomNav. */
@@ -37,6 +38,7 @@ export function SidebarNav() {
           );
         })}
       </nav>
+      <SignOutButton className="mt-auto" />
     </aside>
   );
 }

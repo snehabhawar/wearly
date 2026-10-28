@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 
-// The auth guard (signed-out users go to /login) arrives with /login (task F4).
+// Signed-out visitors never reach these screens: proxy.ts sends them to /login.
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return <AppShell>{children}</AppShell>;
 }
