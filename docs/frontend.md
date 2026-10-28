@@ -42,7 +42,7 @@ One Next.js app (App Router, TypeScript) serves the homepage, the app on phone a
 | `/h/[hanger]` | NFC landing | – | *After MVP.* URL written on each sticker. Blinks the hanger white, opens its item, and offers the camera if there's no photo |
 | `/sim` | Hub simulator | Hub simulator | **Dev only**, hidden in production. Sends real events through the hub API |
 
-Route groups: `app/(marketing)` for the homepage (no app shell), `app/(app)` for signed-in screens (shared shell, auth guard).
+Route groups: `app/(marketing)` for the homepage (no app shell), `app/(app)` for signed-in screens (shared shell). The auth guard is `proxy.ts`: it refreshes the Supabase session, sends signed-out visitors to `/login?next=…` and signed-in ones from `/login` to `/today`; add new signed-in routes to its `matcher`. Sign-in and sign-out run in the browser through `lib/supabase/client.ts`.
 
 ## Layout and responsiveness
 
