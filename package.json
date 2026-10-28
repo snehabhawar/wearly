@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:link": "supabase link",
+    "db:push": "supabase db push --linked",
+    "db:reset": "supabase db reset --linked",
+    "db:types": "supabase gen types --linked --schema public > lib/supabase/types.ts"
   },
   "dependencies": {
     "next": "16.4.3",
@@ -23,6 +27,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "supabase": "^2.122.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^5.0.5"
