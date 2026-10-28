@@ -21,7 +21,8 @@ create index sensor_events_hanger_occurred_idx on sensor_events (hanger_id, occu
 create index sensor_events_closet_id_idx on sensor_events (closet_id);
 
 create function sensor_events_reject_update() returns trigger
-language plpgsql as $$
+language plpgsql set search_path = ''
+as $$
 begin
   -- The one allowed change: the foreign key clearing device_id when a hub is deleted
   if old.device_id is not null and new.device_id is null
