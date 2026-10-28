@@ -1,4 +1,5 @@
-import type { ClosetItem, ClosetSummary } from "./closet";
+import type { SwipeCard } from "@/lib/api";
+import { isWaiting, type ClosetItem, type ClosetSummary } from "./closet";
 
 /*
  * Fake closet shaped like supabase/seed.sql, so screens can be built before reads
@@ -74,3 +75,30 @@ export const FIXTURE_SUMMARY: ClosetSummary = {
   worn90dPct: 54,
   rehomedThisYear: 3,
 };
+
+/** When the seed adds every garment: about 14 months ago */
+const ADDED_ON = "2025-08-28";
+
+const priceOf = (hanger: number) => ROWS.find((r) => r[0] === hanger)?.[9] ?? null;
+
+/**
+ * What GET /api/swipe/deck returns for the fixture closet: waiting garments, most
+ * "put back unworn" first, then the longest idle (docs/backend.md, Swipe deck).
+ */
+export const FIXTURE_DECK: SwipeCard[] = FIXTURE_CLOSET.filter(isWaiting)
+  .sort(
+    (a, b) =>
+      b.browsedCount - a.browsedCount || a.wears90d - b.wears90d || b.idleDaysInSeason - a.idleDaysInSeason,
+  )
+  .map((item) => ({
+    garment_id: item.garmentId ?? "",
+    hanger_number: item.hangerNumber,
+    name: item.name,
+    photo_path: item.photoPath,
+    category: item.category,
+    idle_days_in_season: item.idleDaysInSeason,
+    browsed_count: item.browsedCount,
+    wears_90d: item.wears90d,
+    waiting_since: item.lastWornOn ?? ADDED_ON,
+    price_cents: priceOf(item.hangerNumber),
+  }));
