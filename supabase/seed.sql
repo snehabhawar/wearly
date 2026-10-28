@@ -1,4 +1,5 @@
-create extension if not exists pgcrypto;
+-- Supabase keeps pgcrypto in the extensions schema, which the seed runner does not search
+create extension if not exists pgcrypto with schema extensions;
 
 -- Fixed IDs so the script and the app can refer to them
 do $$
@@ -7,12 +8,15 @@ declare
   cid  uuid := '00000000-0000-0000-0000-0000000000c1';
   did  uuid := '00000000-0000-0000-0000-0000000000d1';
 begin
+  -- Start clean so the seed can run again: deleting the user cascades to its closet and everything in it
+  delete from auth.users where id = uid;
+
   -- Demo user
   insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
     email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
     confirmation_token, recovery_token, email_change, email_change_token_new)
   values (uid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-    'demo@wearly.app', crypt('wearly-demo', gen_salt('bf')), now(),
+    'demo@wearly.app', extensions.crypt('wearly-demo', extensions.gen_salt('bf')), now(),
     '{"provider":"email","providers":["email"]}', '{}', now(), now(), '', '', '', '')
   on conflict (id) do nothing;
 
@@ -29,19 +33,19 @@ begin
 
   -- Dev hub. Secret: dev-hub-secret (must match HUB_DEV_SECRET in .env.local)
   insert into devices (id, closet_id, kind, name, secret_hash)
-  values (did, cid, 'hub', 'Dev hub', encode(digest('dev-hub-secret', 'sha256'), 'hex'));
+  values (did, cid, 'hub', 'Dev hub', encode(extensions.digest('dev-hub-secret', 'sha256'), 'hex'));
 
-  -- 24 hangers
-  insert into hangers (id, closet_id, number, on_rail, garment_on, led_color, led_pattern)
+  -- 24 hangers, all in the closet with lights off (scripts/seed-history.ts sets the final state)
+  insert into hangers (id, closet_id, number, on_rail, garment_on)
   select ('00000000-0000-0000-0000-0000000001' || lpad(n::text, 2, '0'))::uuid,
-         cid, n, true, true, null, null
+         cid, n, true, true
   from generate_series(1, 24) n;
 
   -- 18 photographed garments on hangers 1-18
   insert into garments (id, closet_id, name, category, color, seasons, formality,
                         price_cents, photo_path, tags_source, status, created_at)
   select ('00000000-0000-0000-0000-0000000002' || lpad(n::text, 2, '0'))::uuid,
-         cid, g.name, g.category, g.color, g.seasons, g.formality, g.price,
+         cid, g.name, g.category, g.color, g.seasons::text[], g.formality, g.price,
          '/demo/garments/' || lpad(n::text, 2, '0') || '.jpg', 'user', 'active',
          now() - interval '14 months'
   from (values
@@ -79,11 +83,13 @@ begin
    ('00000000-0000-0000-0000-000000000232', cid, 'Pleated skirt',    'bottom', 'plaid', '{fall,winter}',  3, 3200, null, 'user', 'rehomed', now() - interval '14 months'),
    ('00000000-0000-0000-0000-000000000233', cid, 'Boxy denim vest',  'outer',  'blue',  '{spring,fall}',  2, 4100, null, 'user', 'rehomed', now() - interval '14 months');
 
-  -- Open assignments for hangers 1-24 (current garments)
+  -- Open assignments for hangers 1-24 (current garments). The mystery garments on
+  -- hangers 19-21 were hung a day after the rehomed ones left; seed-history.ts reads
+  -- these timestamps to place the matching sensor events.
   insert into hanger_assignments (hanger_id, garment_id, started_at)
   select ('00000000-0000-0000-0000-0000000001' || lpad(n::text, 2, '0'))::uuid,
          ('00000000-0000-0000-0000-0000000002' || lpad(n::text, 2, '0'))::uuid,
-         case when n between 19 and 21 then now() - interval '40 days'
+         case when n between 19 and 21 then now() - interval '39 days'
               else now() - interval '14 months' end
   from generate_series(1, 24) n;
 
