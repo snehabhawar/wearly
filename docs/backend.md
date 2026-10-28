@@ -140,8 +140,10 @@ When absences close as `worn`, group those whose `left_at` falls within **30 min
 **MVP:** the sweep runs for a hanger on every ingest. It also runs for the whole closet on the hub's `GET /api/hub/commands` polls, throttled to every poll in `demo` and every 5 minutes in `real` (tracked in `closets.last_swept_at`). The hub polls every second, so no cron is needed. It handles:
 
 - Open absences past the `worn` threshold: write a provisional wear now, so it shows up the same day.
-- Open absences past the `missing` threshold: mark them missing.
-- Let-go garments that have left: mark them rehomed (see [Swipe deck](#swipe-deck)).
+- Open absences past the `missing` threshold: mark them missing and delete their provisional wear (missing isn't a wear).
+- Let-go garments that have left: mark them rehomed (see [Swipe deck](#swipe-deck)). Ending the assignment also closes the garment's open absence at that moment, so the next garment hung on the hanger starts clean.
+
+`replayHanger()` in `lib/wear-engine/replay.ts` applies the same rules to a hanger's whole event history; the seed history script uses it, and so will the replay script.
 - Expiring commands older than `expires_at`.
 
 *After MVP:* outfit grouping joins the sweep, and a pg_cron job (`/api/cron/sweep`) covers times when the hub is offline. Vercel's free plan only runs cron jobs daily, which is why scheduling would live in pg_cron.

@@ -12,7 +12,8 @@
     "db:link": "supabase link",
     "db:push": "supabase db push --linked",
     "db:reset": "supabase db reset --linked",
-    "db:types": "supabase gen types --linked --schema public > lib/supabase/types.ts"
+    "db:types": "supabase gen types --linked --schema public > lib/supabase/types.ts",
+    "seed:history": "tsx --env-file=.env.local scripts/seed-history.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -39,6 +40,7 @@
     "eslint-config-next": "16.4.3",
     "supabase": "^2.122.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.5"
   },
