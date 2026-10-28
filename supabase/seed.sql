@@ -69,10 +69,12 @@ begin
     (18, 'Burgundy silk blouse', 'top',       'burgundy','{spring,fall}',        4, 9400)
   ) as g(n, name, category, color, seasons, formality, price);
 
-  -- 6 mystery garments (no photo, no tags) on hangers 19-24
+  -- 6 mystery garments (no photo, no tags) on hangers 19-24. 19-21 are new: added the
+  -- day they were hung, so their waiting time starts then, not 14 months ago
   insert into garments (id, closet_id, status, created_at)
   select ('00000000-0000-0000-0000-0000000002' || lpad(n::text, 2, '0'))::uuid,
-         cid, 'active', now() - interval '14 months'
+         cid, 'active',
+         case when n between 19 and 21 then now() - interval '39 days' else now() - interval '14 months' end
   from generate_series(19, 24) n;
 
   -- 3 rehomed garments (history only): ids 31-33, previously on hangers 19-21

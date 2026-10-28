@@ -91,10 +91,12 @@ function build(ctx: Ctx): Session[] {
         out.push({ hanger: h, leftAt: left, returnedAt: left + away })
       }
       const pool = (xs: number[]) => (rnd() < 0.6 ? pick(FAVORITES.filter(f => xs.includes(f)).length ? FAVORITES.filter(f => xs.includes(f)) : xs) : pick(xs))
+      const cool = [9, 10, 11, 0, 1, 2].includes(day.month)
       const tops = [1, 2, 3, 4, 5, 6, 16].filter(h => inSeason(h, day))
       const bottoms = [9, 10, 11, 12, 17].filter(h => inSeason(h, day))
-      wear(pool(tops)); wear(pool(bottoms))
-      const cool = [9, 10, 11, 0, 1, 2].includes(day.month)
+      // The wrap dress replaces top + bottom on some warm days; the turtleneck is a cool-day staple
+      if (inSeason(15, day) && rnd() < 0.2) wear(15)
+      else { wear(cool && inSeason(16, day) && rnd() < 0.3 ? 16 : pool(tops)); wear(pool(bottoms)) }
       if (cool && rnd() < 0.5) wear(pick([7, 13, 14, 8].filter(h => inSeason(h, day))))
     }
 
