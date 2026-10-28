@@ -1,6 +1,7 @@
 "use client";
 
 import { ExternalLink, Heart, Sparkles } from "lucide-react";
+import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { cardSubject, DeckCard } from "@/components/deck-card";
 import { LetGoSheet, type LetGoRoute } from "@/components/let-go-sheet";
@@ -10,6 +11,8 @@ import { todayIn } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const TOAST_MS = 4000;
+/** How far (px, with a little momentum) a card must be dragged to count as a swipe */
+const SWIPE_DISTANCE = 120;
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -30,7 +33,7 @@ function useToday(timeZone: string): string | null {
 
 /**
  * Keep-or-let-go deck: one card at a time with Let go, Style it and Keep.
- * Buttons are the accessible path; arrow keys work while the deck has focus.
+ * Drag the card, or use the buttons (the accessible path) or the arrow keys while the deck has focus.
  */
 export function SwipeDeck({
   cards,
@@ -120,7 +123,13 @@ export function SwipeDeck({
           <div className="relative pb-3.5">
             {remaining > 2 && <span aria-hidden className="absolute inset-x-4 top-3.5 bottom-0 rounded-[26px] bg-heat-1" />}
             {remaining > 1 && <span aria-hidden className="absolute inset-x-2 top-1.75 bottom-1.75 rounded-[26px] bg-plum-soft" />}
-            <DeckCard key={card.garment_id} card={card} today={today} className="relative" />
+            <DraggableCard
+              key={card.garment_id}
+              card={card}
+              today={today}
+              onKeep={keep}
+              onLetGo={() => setSheetOpen(true)}
+            />
           </div>
 
           <div className="flex items-start justify-center gap-7">
@@ -157,9 +166,63 @@ export function SwipeDeck({
       </p>
 
       {card && (
-        <LetGoSheet open={sheetOpen} onOpenChange={setSheetOpen} subject={cardSubject(card)} onPick={pickRoute} />
+        <LetGoSheet open={sheetOpen} onOpenChange={setSheetOpen} onPick={pickRoute} />
       )}
     </div>
+  );
+}
+
+/** The top card: drag right to keep (it flies off), left to open the let-go sheet (it settles back). */
+function DraggableCard({
+  card,
+  today,
+  onKeep,
+  onLetGo,
+}: {
+  card: SwipeCard;
+  today: string | null;
+  onKeep: () => void;
+  onLetGo: () => void;
+}) {
+  const reduceMotion = useReducedMotion();
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-240, 240], reduceMotion ? [0, 0] : [-10, 10]);
+  const keepHint = useTransform(x, [30, SWIPE_DISTANCE], [0, 1]);
+  const letGoHint = useTransform(x, [-SWIPE_DISTANCE, -30], [1, 0]);
+
+  return (
+    <motion.div
+      drag="x"
+      dragElastic={0.6}
+      dragMomentum={false}
+      style={{ x, rotate }}
+      onDragEnd={(_, info) => {
+        const swipe = info.offset.x + info.velocity.x * 0.2;
+        if (swipe > SWIPE_DISTANCE) {
+          void animate(x, 640, { duration: reduceMotion ? 0 : 0.25 }).then(onKeep);
+          return;
+        }
+        void animate(x, 0, { type: "spring", stiffness: 500, damping: 40 });
+        if (swipe < -SWIPE_DISTANCE) onLetGo();
+      }}
+      className="relative cursor-grab touch-pan-y active:cursor-grabbing"
+    >
+      <DeckCard card={card} today={today} />
+      <motion.span
+        aria-hidden
+        style={{ opacity: keepHint }}
+        className="absolute top-5 left-5 -rotate-6 rounded-lg border-2 border-plum bg-card px-3 py-1 font-heading text-xl font-bold text-plum"
+      >
+        Keep
+      </motion.span>
+      <motion.span
+        aria-hidden
+        style={{ opacity: letGoHint }}
+        className="absolute top-5 right-5 rotate-6 rounded-lg border-2 border-amber bg-card px-3 py-1 font-heading text-xl font-bold text-amber-ink"
+      >
+        Let go
+      </motion.span>
+    </motion.div>
   );
 }
 
