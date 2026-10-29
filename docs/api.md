@@ -233,7 +233,7 @@ Disabled when `NODE_ENV=production`.
 | Method & path | Does |
 | --- | --- |
 | `POST /api/sim/events` | Same body as `POST /api/hub/events`; the server adds `HUB_DEV_SECRET` and forwards to the hub ingest, so the `/sim` page never holds the secret |
-| `POST /api/sim/reset` | Resets hangers to "in closet" with lights off, drops open absences (and their provisional wears) and pending commands for the dev closet. `200 { hangers }` |
+| `POST /api/sim/reset` | Resets hangers to "in closet" with lights off, drops open absences (and their provisional wears) and pending commands for the dev closet, and undoes the swipe deck: decisions are dropped and garments let go through it come back to active on their hanger. `200 { hangers }` |
 | `POST /api/sim/poll` | One hub poll cycle: runs the sweep, returns the pending commands and acks them all, as the firmware would. `200 { commands, sweep }` |
 | `GET /api/sim/state` | The dev closet's wear profile and hangers: sensors, light and current garment. `200 { profile, hangers }` |
 | `POST /api/sim/lights` | `{ hangers: number[], light }`: queues that light on those hangers (Find it, lights off). `202 { command_ids }` |
