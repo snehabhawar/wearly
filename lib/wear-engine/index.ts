@@ -1,4 +1,4 @@
-export { WEAR_PROFILES, type WearProfile, type WearProfileName } from "./profiles";
+export { SWEEP_INTERVAL_MS, WEAR_PROFILES, type WearProfile, type WearProfileName } from "./profiles";
 export { classifyDuration, countsAsWear, isAway, localDate, type Classification } from "./classify";
 export {
   replayHanger,

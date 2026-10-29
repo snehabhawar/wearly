@@ -40,3 +40,9 @@ export const WEAR_PROFILES: Record<WearProfileName, WearProfile> = {
     washedUnder: 60 * SECOND,
   },
 };
+
+/** How often hub polls may run the closet-wide sweep: every poll in demo, every 5 minutes for real */
+export const SWEEP_INTERVAL_MS: Record<WearProfileName, number> = {
+  real: 5 * MINUTE,
+  demo: 0,
+};
