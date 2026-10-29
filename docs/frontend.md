@@ -161,8 +161,9 @@ Use relative, human dates ("since March," "9 days ago") in the UI, with exact da
 Matches the mockup:
 
 - **Virtual rail:** 6–24 hangers, each with "Lift garment" / "Hang back," "Take hanger" / "Rehang" and Find it.
-- **"Put it back after" picker:** 3 min, 45 min, 8 h or 2 days. It works by sending the first event with an `age_ms` offset; see [api.md](api.md#dev-only).
-- **Panels:** live event log with each classification, the command queue with each hanger's LED state, and the last payload.
-- **"Play 3-min demo script":** runs the demo steps in the browser.
+- **"Put it back" picker:** "when I click" (live: each click sends one event now, the demo's way) or a quick lift that lasts the middle of the browsed, tried-on, worn or worn-and-washed band of the closet's profile (seconds in `demo`). A quick lift sends both events at once, the first with an `age_ms` offset; see [api.md](api.md#dev-only).
+- **Panels:** live event log with each classification (and the sweep's provisional wears), the command queue with each hanger's LED state, and the last payload.
+- The page polls `POST /api/sim/poll` every second, like the hub, and sends events one request at a time in click order.
+- **"Play 3-min demo script":** runs the demo steps in the browser (once Plan and Swipe are live).
 
 It calls the real hub API with `HUB_DEV_SECRET`, through a small server route that adds the secret, so the secret never reaches the browser.
