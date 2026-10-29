@@ -1,5 +1,7 @@
 # Working together
 
+> **Update 2026-10-29:** Tam now builds the whole MVP on the `dev` branch, so the split below no longer applies. Stubs (B3) were skipped in favor of real routes. The ownership and contract rules still hold for anyone joining.
+
 Two people build the MVP in parallel: one on the **frontend**, one on the **backend**. This page is what we agreed on so the two halves connect without surprises.
 
 ## The contract

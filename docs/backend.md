@@ -2,7 +2,7 @@
 
 The backend is Supabase (Postgres, Auth, Storage, Realtime, pg_cron) plus Next.js route handlers on Vercel. The domain logic (wear engine, planner, deck, AI clients) lives in `lib/` as plain TypeScript with no Next.js imports.
 
-> Status: specification. Nothing is implemented yet. Endpoint shapes are in [api.md](api.md).
+> Status: the MVP backend is implemented on `dev`: schema, RLS and views, the wear engine, hub ingest and the sweep, the swipe deck and the planner. Sections marked *after MVP* are still specification. Endpoint shapes are in [api.md](api.md).
 
 ## MVP scope
 

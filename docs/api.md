@@ -9,7 +9,7 @@ All endpoints are Next.js route handlers under `app/api/`. Request and response 
 
 Conventions for values: dates are `YYYY-MM-DD` in the closet's timezone, timestamps are ISO 8601 with offset, money is in cents, row ids are uuids, and hangers are addressed by **number** in URLs and hub payloads.
 
-> Status: specification. Nothing is implemented yet.
+> Status: on `dev`, every MVP endpoint here is implemented: the hub API, the dev-only `/api/sim/*` routes, Find it, swipe and plan. Endpoints marked *after MVP* are still specification. `requests/hub.http` has runnable examples.
 
 ## MVP scope
 
