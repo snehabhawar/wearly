@@ -57,3 +57,9 @@ export function mondayOf(day: string): string {
   d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
   return d.toISOString().slice(0, 10);
 }
+
+/** "Hanger 3", "Hangers 1 and 17", "Hangers 1, 11 and 18" */
+export function formatHangers(numbers: number[]): string {
+  if (numbers.length <= 1) return `Hanger ${numbers.join("")}`;
+  return `Hangers ${numbers.slice(0, -1).join(", ")} and ${numbers.at(-1)}`;
+}

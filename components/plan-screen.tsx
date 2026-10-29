@@ -6,7 +6,7 @@ import { GarmentThumb } from "@/components/garment-thumb";
 import { LedDot } from "@/components/led-dot";
 import { Button } from "@/components/ui/button";
 import type { ForecastDay } from "@/lib/api";
-import { mondayOf } from "@/lib/format";
+import { formatHangers, mondayOf } from "@/lib/format";
 import { addDays } from "@/lib/planner/plan";
 import type { PlanDay } from "@/lib/queries/plan";
 import { useCurrentCloset } from "@/lib/queries/use-current-closet";
@@ -26,10 +26,6 @@ const WEATHER_ICON: Record<ForecastDay["condition"], typeof Sun> = {
   rain: CloudRain,
   snow: Snowflake,
 };
-
-/** "1, 17 and 22" */
-const listNumbers = (ns: number[]) =>
-  ns.length <= 1 ? ns.join("") : `${ns.slice(0, -1).join(", ")} and ${ns.at(-1)}`;
 
 /** The Plan screen: this week's outfits, with "Light up tomorrow" */
 export function PlanScreen() {
@@ -151,8 +147,8 @@ export function PlanScreen() {
               {lit ? (
                 lit.length > 0 ? (
                   <>
-                    <strong className="text-ink">{longDay(tomorrow)}:</strong> hanger{lit.length > 1 ? "s" : ""}{" "}
-                    {listNumbers(lit)} {lit.length > 1 ? "are" : "is"} glowing purple. Open the closet and they&apos;re
+                    <strong className="text-ink">{longDay(tomorrow)}:</strong> {formatHangers(lit).toLowerCase()}{" "}
+                    {lit.length > 1 ? "are" : "is"} glowing purple. Open the closet and they&apos;re
                     ready.
                   </>
                 ) : (

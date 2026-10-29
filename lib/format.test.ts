@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { formatCents, formatMonth, formatMonthDay, formatSince, localMidnight, mondayOf, todayIn } from "./format";
+import { formatCents, formatHangers, formatMonth, formatMonthDay, formatSince, localMidnight, mondayOf, todayIn } from "./format";
 
 test("today is the closet's local date, not UTC", () => {
   // 02:30 UTC on Oct 28 is still the evening of Oct 27 in New York
@@ -30,4 +30,8 @@ test("localMidnight finds the start of a local day across offsets", () => {
 
 test("mondayOf", () => {
   expect(["2026-10-26", "2026-10-29", "2026-11-01"].map(mondayOf)).toEqual(["2026-10-26", "2026-10-26", "2026-10-26"]);
+});
+
+test("formatHangers", () => {
+  expect([[3], [1, 17], [1, 11, 18]].map(formatHangers)).toEqual(["Hanger 3", "Hangers 1 and 17", "Hangers 1, 11 and 18"]);
 });
