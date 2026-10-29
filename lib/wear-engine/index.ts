@@ -8,3 +8,12 @@ export {
   type HangerEvent,
   type ReplayResult,
 } from "./replay";
+export {
+  hasLeftForGood,
+  stepHanger,
+  sweepAbsence,
+  type EventStep,
+  type OpenAbsence,
+  type SweepStep,
+  type WearChange,
+} from "./step";
