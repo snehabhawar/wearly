@@ -1,0 +1,80 @@
+# Hub API (docs/api.md) against the dev server, for the VS Code REST Client extension
+# (humao.rest-client): click "Send Request" above a request. Run `pnpm dev --port 3100` first.
+# The secret is the seeded dev hub's (supabase/seed.sql), not a real one.
+
+@base = http://localhost:3100
+@hub = Bearer dev-hub-secret
+
+### Lift the garment off hanger 3 (opens an absence: "away")
+POST {{base}}/api/hub/events
+Authorization: {{hub}}
+Content-Type: application/json
+
+{ "events": [{ "hanger": 3, "on_rail": true, "garment_on": false }] }
+
+### Hang it back right away (closes it as "browsed", no wear)
+POST {{base}}/api/hub/events
+Authorization: {{hub}}
+Content-Type: application/json
+
+{ "events": [{ "hanger": 3, "on_rail": true, "garment_on": true }] }
+
+### Away 15 s, then back, in one call (the demo closet counts it as "worn")
+POST {{base}}/api/hub/events
+Authorization: {{hub}}
+Content-Type: application/json
+
+{
+  "events": [
+    { "hanger": 4, "on_rail": true, "garment_on": false, "age_ms": 15000 },
+    { "hanger": 4, "on_rail": true, "garment_on": true }
+  ]
+}
+
+### Duplicate seq: send twice, the second answers duplicates: 1
+POST {{base}}/api/hub/events
+Authorization: {{hub}}
+Content-Type: application/json
+
+{ "events": [{ "hanger": 2, "on_rail": true, "garment_on": true, "seq": 42 }] }
+
+### Poll for light commands, as the hub does every second (also runs the sweep)
+# @name poll
+GET {{base}}/api/hub/commands
+Authorization: {{hub}}
+
+### Ack the first command the poll returned (send "poll" first)
+POST {{base}}/api/hub/commands/ack
+Authorization: {{hub}}
+Content-Type: application/json
+
+{ "ids": [{{poll.response.body.$.commands[0].id}}] }
+
+### Wrong secret: 401
+GET {{base}}/api/hub/commands
+Authorization: Bearer not-the-secret
+
+### Bad body: 400 with the Zod issues
+POST {{base}}/api/hub/events
+Authorization: {{hub}}
+Content-Type: application/json
+
+{ "events": [] }
+
+
+# ---- Dev only (/api/sim/*): the server adds the secret, 404 in production ----
+
+### Blink hanger 5 white (Find it); poll above to receive it
+POST {{base}}/api/sim/lights
+Content-Type: application/json
+
+{ "hangers": [5], "light": { "color": "white", "pattern": "blink2" } }
+
+### Hanger 18 amber, breathing (lasting until the next lasting light)
+POST {{base}}/api/sim/lights
+Content-Type: application/json
+
+{ "hangers": [18], "light": { "color": "amber", "pattern": "breathe" } }
+
+### Every hanger back in the closet, lights off, open absences and pending commands dropped
+POST {{base}}/api/sim/reset
