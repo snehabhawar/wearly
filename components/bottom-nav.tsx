@@ -2,18 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 import { isActive, NAV_ITEMS } from "@/components/nav-items";
 import { cn } from "@/lib/utils";
 
 /** Phone navigation (< 768px). Desktop uses SidebarNav. */
 export function BottomNav() {
-  const pathname = usePathname();
-
   return (
     <nav
       aria-label="Main"
       className="sticky bottom-0 flex h-19 shrink-0 items-center justify-around border-t border-line bg-card pb-[max(6px,env(safe-area-inset-bottom))] md:hidden"
     >
+      {/* The pathname is unknown while prerendering routes with params, so the active tab fills in on load */}
+      <Suspense fallback={<BottomLinks pathname="" />}>
+        <ActiveBottomLinks />
+      </Suspense>
+    </nav>
+  );
+}
+
+function ActiveBottomLinks() {
+  return <BottomLinks pathname={usePathname()} />;
+}
+
+function BottomLinks({ pathname }: { pathname: string }) {
+  return (
+    <>
       {NAV_ITEMS.map(({ href, label, Icon }) => {
         const active = isActive(pathname, href);
         return (
@@ -31,6 +45,6 @@ export function BottomNav() {
           </Link>
         );
       })}
-    </nav>
+    </>
   );
 }
