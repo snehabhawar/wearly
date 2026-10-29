@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FindItButton } from "@/components/find-it-button";
 import { GarmentThumb } from "@/components/garment-thumb";
 import { HangerTile } from "@/components/hanger-tile";
 import { StatCard } from "@/components/stat-card";
@@ -156,11 +157,9 @@ function SelectedHanger({ item }: { item: ClosetItem }) {
           value={item.costPerWearCents !== null ? formatCents(item.costPerWearCents) : "–"}
         />
       </div>
-      <div className="flex gap-2.5">
-        {/* Wired to POST /api/hangers/{n}/find and Style it once the backend stubs land (B3) */}
-        <Button disabled className="h-11.5 flex-1 rounded-lg font-semibold">
-          Find it
-        </Button>
+      <div className="flex items-start gap-2.5">
+        <FindItButton key={item.hangerNumber} hangerNumber={item.hangerNumber} className="flex-1" />
+        {/* Opens Style it once that screen exists */}
         <Button disabled variant="secondary" className="h-11.5 flex-1 rounded-lg font-semibold">
           Style it
         </Button>
