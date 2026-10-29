@@ -39,6 +39,30 @@ export async function queueLight(
   return row.id;
 }
 
+/**
+ * Queues a lasting light only if the hanger isn't already showing it or about to: the newest
+ * pending lasting command wins over the hanger's current light. Returns the new command id, or null.
+ */
+export async function ensureLight(
+  db: Db,
+  input: { closetId: string; hanger: { id: string; ledColor: string }; light: Light; reason: string; now: Date },
+): Promise<number | null> {
+  const pending = check(
+    await db
+      .from("commands")
+      .select("color")
+      .eq("hanger_id", input.hanger.id)
+      .is("acked_at", null)
+      .gt("expires_at", input.now.toISOString())
+      .neq("color", "white")
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  );
+  if ((pending?.color ?? input.hanger.ledColor) === input.light.color) return null;
+  return queueLight(db, { closetId: input.closetId, hangerId: input.hanger.id, light: input.light, reason: input.reason, now: input.now });
+}
+
 /** What the hub should show: per hanger, the newest command not yet acked or expired */
 export async function pendingCommands(db: Db, closetId: string, now: Date): Promise<HubCommand[]> {
   const rows = check(

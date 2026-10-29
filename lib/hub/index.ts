@@ -1,5 +1,5 @@
 export { authenticateHub, bearerToken, hashSecret, type HubDevice } from "./auth";
-export { ackCommands, pendingCommands, queueLight } from "./commands";
+export { ackCommands, ensureLight, pendingCommands, queueLight } from "./commands";
 export { loadCloset, type Db, type HubCloset } from "./db";
 export { ingestEvents } from "./ingest";
 export { sweepCloset, type SweepResult } from "./sweep";
