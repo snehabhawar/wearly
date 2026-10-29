@@ -1,8 +1,8 @@
 # Hub API (docs/api.md) against the dev server, for the VS Code REST Client extension
-# (humao.rest-client): click "Send Request" above a request. Run `pnpm dev --port 3100` first.
+# (humao.rest-client): click "Send Request" above a request. Run `pnpm dev` first.
 # The secret is the seeded dev hub's (supabase/seed.sql), not a real one.
 
-@base = http://localhost:3100
+@base = http://localhost:3000
 @hub = Bearer dev-hub-secret
 
 ### Lift the garment off hanger 3 (opens an absence: "away")
