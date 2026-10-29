@@ -78,3 +78,11 @@ Content-Type: application/json
 
 ### Every hanger back in the closet, lights off, open absences and pending commands dropped
 POST {{base}}/api/sim/reset
+
+
+# ---- App API (signed-in user) ----
+# These use the browser session cookie, so REST Client gets 401 unless you paste a
+# sb-...-auth-token cookie from the browser. Easier: test them from the app.
+
+### Find it on hanger 8 (401 when signed out)
+POST {{base}}/api/hangers/8/find
