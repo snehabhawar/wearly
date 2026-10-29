@@ -166,7 +166,13 @@ function dropOverlaps(sessions: Session[]): Session[] {
 }
 
 type HangerRow = { id: string; number: number }
-type AssignmentRow = { hanger_id: string; garment_id: string; started_at: string; ended_at: string | null }
+type AssignmentRow = {
+  hanger_id: string
+  garment_id: string
+  started_at: string
+  ended_at: string | null
+  garments: { status: string } | null
+}
 type Seeded = { ctx: Ctx; hangers: HangerRow[]; assignments: AssignmentRow[] }
 
 type SensorEventRow = {
@@ -216,15 +222,17 @@ async function loadSeeded(db: SupabaseClient): Promise<Seeded> {
     .overrideTypes<HangerRow[], { merge: false }>()
   if (hangers.error) throw hangers.error
   const assignments = await db.from('hanger_assignments')
-    .select('hanger_id, garment_id, started_at, ended_at')
+    .select('hanger_id, garment_id, started_at, ended_at, garments(status)')
     .in('hanger_id', hangers.data.map(h => h.id))
     .overrideTypes<AssignmentRow[], { merge: false }>()
   if (assignments.error) throw assignments.error
 
   const numberOf = new Map(hangers.data.map(h => [h.id, h.number]))
   const ms = (t: string) => new Date(t).getTime()
+  // Only garments that are rehomed now (the seed's three) get a leaving history: an assignment
+  // ended in a demo rehearsal and undone by /api/sim/reset must not invent wears
   const rehomes = assignments.data.flatMap(ended => {
-    if (ended.ended_at === null) return []
+    if (ended.ended_at === null || ended.garments?.status !== 'rehomed') return []
     const endedAt = ms(ended.ended_at)
     const nextStarts = assignments.data
       .filter(a => a.hanger_id === ended.hanger_id && ms(a.started_at) >= endedAt)

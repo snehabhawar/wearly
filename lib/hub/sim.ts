@@ -89,7 +89,7 @@ export async function latestAbsences(db: Db, closetId: string, hangerNumbers: nu
  * every garment let go through it back to active, on its last hanger if that hanger is free.
  * Garments rehomed in the seed have no decision, so they stay rehomed.
  */
-async function undoSwipes(db: Db, closetId: string, now: Date): Promise<void> {
+async function undoSwipes(db: Db, closetId: string): Promise<void> {
   const decisions = check(
     await db.from("swipe_decisions").select("id, garment_id, decision, garments!inner(closet_id, status)").eq("garments.closet_id", closetId),
   );
@@ -97,10 +97,12 @@ async function undoSwipes(db: Db, closetId: string, now: Date): Promise<void> {
   for (const garmentId of letGo) {
     const open = check(await db.from("hanger_assignments").select("id").eq("garment_id", garmentId).is("ended_at", null));
     if (open.length === 0) {
+      // Undo the rehoming itself: reopen the assignment it ended, so no extra ended assignment is
+      // left behind (seed-history would read one as a garment that left the closet)
       const last = check(
         await db
           .from("hanger_assignments")
-          .select("hanger_id")
+          .select("id, hanger_id")
           .eq("garment_id", garmentId)
           .order("started_at", { ascending: false })
           .limit(1)
@@ -108,7 +110,7 @@ async function undoSwipes(db: Db, closetId: string, now: Date): Promise<void> {
       );
       const taken = last && check(await db.from("hanger_assignments").select("id").eq("hanger_id", last.hanger_id).is("ended_at", null));
       if (last && taken?.length === 0) {
-        check(await db.from("hanger_assignments").insert({ hanger_id: last.hanger_id, garment_id: garmentId, started_at: now.toISOString() }));
+        check(await db.from("hanger_assignments").update({ ended_at: null }).eq("id", last.id));
       }
     }
     check(await db.from("garments").update({ status: "active" }).eq("id", garmentId));
@@ -123,7 +125,7 @@ async function undoSwipes(db: Db, closetId: string, now: Date): Promise<void> {
  * wear history stays.
  */
 export async function simReset(db: Db, closetId: string, now: Date): Promise<void> {
-  await undoSwipes(db, closetId, now);
+  await undoSwipes(db, closetId);
   check(await db.from("absences").delete().eq("closet_id", closetId).is("returned_at", null));
   check(await db.from("commands").delete().eq("closet_id", closetId).is("acked_at", null));
   check(
