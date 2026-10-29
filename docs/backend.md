@@ -11,7 +11,7 @@ The MVP covers the demo script and nothing more. Everything marked *after MVP* b
 **In the MVP**
 - Tables: `closets` (with `owner_id`), `devices`, `hangers`, `garments`, `hanger_assignments`, `sensor_events`, `absences`, `wears`, `plans`, `plan_items`, `swipe_decisions`, `commands`; views `garment_stats`, `closet_summary`
 - RLS by closet owner (`owner_id = auth.uid()`)
-- Hub ingest through `ingest_hanger_event`, and the wear engine with `real` and `demo` profiles
+- Hub ingest in `lib/hub/`, and the wear engine with `real` and `demo` profiles
 - A sweep that runs on ingest and on the hub's command polls, with no cron
 - A rule-based planner using Open-Meteo, hard-coded calendar events and wear history
 - Swipe deck, decisions, rehoming and impact counter
@@ -213,11 +213,11 @@ Check FASHN's current docs for model names, input fields and the webhook format 
 
 1. Verify the bearer secret against `devices.secret_hash` to get the device and closet.
 2. Validate the body with Zod.
-3. For each event: resolve `hanger_id` by number, insert into `sensor_events` (skipping duplicate `seq`), update `hangers` current state, and run the wear engine for that hanger.
+3. For each event: resolve `hanger_id` by number, insert into `sensor_events` (skipping duplicate `seq`), update `hangers` current state (unless a newer state is already there), and run the wear engine's `stepHanger` for that hanger: open an absence, or close it, classify it and write or drop its wear.
 4. Update `devices.last_seen_at`.
-5. Realtime pushes the `hangers` and `absences` changes to the app.
+5. Realtime pushes the `hangers`, `absences` and `wears` changes to the app.
 
-All of this runs in one transaction per event, through a Postgres function (`ingest_hanger_event`) called with the service role. The route stays thin, and two near-simultaneous events can't race.
+The logic lives in `lib/hub/` (plain TypeScript on the service-role client) and `lib/wear-engine/step.ts`, which applies the same rules as `replayHanger`. There is no single transaction: the unique indexes on open absences (one per hanger), `wears.absence_id` and `sensor_events (hanger_id, seq)` turn a race between two near-simultaneous requests into a skipped duplicate instead of a double write.
 
 ## Seed data
 
