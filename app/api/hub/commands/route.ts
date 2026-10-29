@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { HubCommandsResponse } from "@/lib/api";
 import { errorResponse, handle } from "@/lib/http";
 import { authenticateHub, bearerToken, pendingCommands, sweepCloset } from "@/lib/hub";
@@ -5,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 // Hub contract: docs/api.md, GET /api/hub/commands. The poll also runs the throttled sweep.
 export async function GET(request: Request) {
+  // Always per request: never prerendered at build time
+  await connection();
   return handle(async () => {
     const now = new Date();
     const db = createAdminClient();
