@@ -6,7 +6,8 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { cardSubject, DeckCard } from "@/components/deck-card";
 import { LetGoSheet, type LetGoRoute } from "@/components/let-go-sheet";
 import { Button } from "@/components/ui/button";
-import type { SwipeCard, SwipeDecisionRequest } from "@/lib/api";
+import type { SwipeCard, SwipeDecisionRequest, SwipeDecisionResponse } from "@/lib/api";
+import { formatCents } from "@/lib/format";
 import { todayIn } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -39,15 +40,22 @@ export function SwipeDeck({
   cards,
   timeZone,
   onDecide,
+  onRestart,
+  rehomedThisYear,
 }: {
+  /** The deck, top card first. Cards decided here are hidden right away, before the deck reloads. */
   cards: SwipeCard[];
   /** The closet's timezone, for "waiting since" */
   timeZone: string;
-  /** Records a decision (POST /api/swipe/decisions once the backend stub lands, task B3) */
-  onDecide?: (decision: SwipeDecisionRequest) => void;
+  /** Records a decision (POST /api/swipe/decisions); a resell answer carries the drafted listing */
+  onDecide?: (decision: SwipeDecisionRequest) => Promise<SwipeDecisionResponse | void> | void;
+  /** Offers "Start over" when the deck is done (fixture decks only: real decisions are saved) */
+  onRestart?: () => void;
+  /** The impact counter: garments that left the closet this year */
+  rehomedThisYear?: number;
 }) {
   const today = useToday(timeZone);
-  const [index, setIndex] = useState(0);
+  const [decided, setDecided] = useState<Set<string>>(new Set());
   const [sheetOpen, setSheetOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [kept, setKept] = useState(0);
@@ -59,14 +67,33 @@ export function SwipeDeck({
     return () => clearTimeout(t);
   }, [toast]);
 
-  const card = cards[index];
-  const remaining = cards.length - index;
+  const visible = cards.filter((c) => !decided.has(c.garment_id));
+  const card = visible[0];
+  const remaining = visible.length;
 
   function decide(decision: SwipeDecisionRequest, message: string) {
-    onDecide?.(decision);
+    setDecided((prev) => new Set(prev).add(decision.garment_id));
     setSheetOpen(false);
     setToast(message);
-    setIndex((i) => i + 1);
+    void Promise.resolve(onDecide?.(decision))
+      .then((res) => {
+        const listing = res?.listing;
+        if (listing) {
+          setToast(
+            `Listing drafted: "${listing.title}", ${formatCents(listing.price_min_cents)}–${formatCents(listing.price_max_cents)}.` +
+              message.slice(LET_GO_TOAST.resell.length),
+          );
+        }
+      })
+      .catch(() => {
+        // Not saved: put the card back on top
+        setDecided((prev) => {
+          const next = new Set(prev);
+          next.delete(decision.garment_id);
+          return next;
+        });
+        setToast("That didn't save. Your hanger is fine; try again in a moment.");
+      });
   }
 
   function keep() {
@@ -86,10 +113,11 @@ export function SwipeDeck({
   }
 
   function restart() {
-    setIndex(0);
+    setDecided(new Set());
     setKept(0);
     setLetGo(0);
     setToast("");
+    onRestart?.();
   }
 
   return (
@@ -100,6 +128,11 @@ export function SwipeDeck({
           <span className="text-[13px] text-muted-foreground">
             Waiting 6+ months, counted within each item&apos;s season
           </span>
+          {rehomedThisYear !== undefined && (
+            <span className="text-[13px] font-semibold text-amber-ink">
+              {rehomedThisYear} {rehomedThisYear === 1 ? "piece" : "pieces"} rehomed this year
+            </span>
+          )}
         </div>
         {card && (
           <span className="shrink-0 rounded-full bg-peach-soft px-2.5 py-1.5 text-xs font-bold text-amber-ink">
@@ -155,9 +188,11 @@ export function SwipeDeck({
             You kept {kept} and let go of {letGo}. We&apos;ll check back when something else has been waiting a
             while.
           </p>
-          <Button variant="outline" onClick={restart} className="h-11 rounded-lg px-4.5 font-semibold">
-            Start over
-          </Button>
+          {onRestart && (
+            <Button variant="outline" onClick={restart} className="h-11 rounded-lg px-4.5 font-semibold">
+              Start over
+            </Button>
+          )}
         </section>
       )}
 
