@@ -2,13 +2,13 @@
 
 import { ExternalLink, Heart, Sparkles } from "lucide-react";
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { cardSubject, DeckCard } from "@/components/deck-card";
 import { LetGoSheet, type LetGoRoute } from "@/components/let-go-sheet";
 import { Button } from "@/components/ui/button";
 import type { SwipeCard, SwipeDecisionRequest, SwipeDecisionResponse } from "@/lib/api";
 import { formatCents } from "@/lib/format";
-import { todayIn } from "@/lib/format";
+import { useToday } from "@/lib/queries/use-today";
 import { cn } from "@/lib/utils";
 
 const TOAST_MS = 4000;
@@ -22,15 +22,6 @@ const LET_GO_TOAST: Record<LetGoRoute, string> = {
   resell: "Listing drafted.",
   swap: "Offered to your swap circle.",
 };
-
-/** The closet's date, read on the client only, so the prerendered page never holds a stale "today" */
-function useToday(timeZone: string): string | null {
-  return useSyncExternalStore(
-    () => () => {},
-    () => todayIn(timeZone),
-    () => null,
-  );
-}
 
 /**
  * Keep-or-let-go deck: one card at a time with Let go, Style it and Keep.
