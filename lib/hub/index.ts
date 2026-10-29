@@ -3,3 +3,4 @@ export { ackCommands, pendingCommands, queueLight } from "./commands";
 export type { Db } from "./db";
 export { ingestEvents } from "./ingest";
 export { sweepCloset, type SweepResult } from "./sweep";
+export { latestAbsences, simDevice, simReset, simState, type SimAbsence, type SimHanger } from "./sim";
