@@ -1,9 +1,9 @@
 import { connection } from "next/server";
 import { errorResponse, handle } from "@/lib/http";
-import { simDevice, simState } from "@/lib/hub";
+import { loadCloset, simDevice, simState } from "@/lib/hub";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Dev only: the dev closet's hangers, sensors, lights and garments
+// Dev only: the dev closet's wear profile and its hangers' sensors, lights and garments
 export async function GET() {
   // Always per request: never prerendered at build time
   await connection();
@@ -12,6 +12,7 @@ export async function GET() {
     const db = createAdminClient();
     const device = await simDevice(db, now);
     if (!device) return errorResponse("not_found", "The simulator is off");
-    return Response.json({ hangers: await simState(db, device.closetId) });
+    const closet = await loadCloset(db, device.closetId);
+    return Response.json({ profile: closet.profileName, hangers: await simState(db, device.closetId) });
   });
 }

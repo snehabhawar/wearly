@@ -18,8 +18,7 @@ export type SimHanger = {
   onRail: boolean;
   garmentOn: boolean;
   light: Light;
-  garmentName: string | null;
-  garmentStatus: string | null;
+  garment: { name: string | null; category: string | null; color: string | null; photoPath: string | null; status: string } | null;
 };
 
 export type SimAbsence = {
@@ -34,7 +33,7 @@ export async function simState(db: Db, closetId: string): Promise<SimHanger[]> {
   const rows = check(
     await db
       .from("hangers")
-      .select("number, on_rail, garment_on, led_color, led_pattern, hanger_assignments(garments(name, status))")
+      .select("number, on_rail, garment_on, led_color, led_pattern, hanger_assignments(garments(name, category, color, photo_path, status))")
       .eq("closet_id", closetId)
       .is("hanger_assignments.ended_at", null)
       .order("number"),
@@ -46,8 +45,13 @@ export async function simState(db: Db, closetId: string): Promise<SimHanger[]> {
       onRail: h.on_rail,
       garmentOn: h.garment_on,
       light: { color: h.led_color, pattern: h.led_pattern } as Light,
-      garmentName: garment?.name ?? null,
-      garmentStatus: garment?.status ?? null,
+      garment: garment && {
+        name: garment.name,
+        category: garment.category,
+        color: garment.color,
+        photoPath: garment.photo_path,
+        status: garment.status,
+      },
     };
   });
 }
