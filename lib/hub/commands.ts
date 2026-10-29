@@ -45,7 +45,15 @@ export async function queueLight(
  */
 export async function ensureLight(
   db: Db,
-  input: { closetId: string; hanger: { id: string; ledColor: string }; light: Light; reason: string; now: Date },
+  input: {
+    closetId: string;
+    hanger: { id: string; ledColor: string };
+    light: Light;
+    reason: string;
+    /** Omitted: the 5-minute default */
+    expiresAt?: Date;
+    now: Date;
+  },
 ): Promise<number | null> {
   const pending = check(
     await db
@@ -60,7 +68,14 @@ export async function ensureLight(
       .maybeSingle(),
   );
   if ((pending?.color ?? input.hanger.ledColor) === input.light.color) return null;
-  return queueLight(db, { closetId: input.closetId, hangerId: input.hanger.id, light: input.light, reason: input.reason, now: input.now });
+  return queueLight(db, {
+    closetId: input.closetId,
+    hangerId: input.hanger.id,
+    light: input.light,
+    reason: input.reason,
+    expiresAt: input.expiresAt,
+    now: input.now,
+  });
 }
 
 /** What the hub should show: per hanger, the newest command not yet acked or expired */
