@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { FindItButton } from "@/components/find-it-button";
 import { GarmentThumb } from "@/components/garment-thumb";
@@ -138,7 +139,14 @@ function SelectedHanger({ item }: { item: ClosetItem }) {
         </span>
       </div>
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-[26px] font-semibold">{item.name ?? `Hanger ${item.hangerNumber}`}</h2>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-[26px] font-semibold">{item.name ?? `Hanger ${item.hangerNumber}`}</h2>
+          {item.garmentId && (
+            <Link href={`/closet/${item.garmentId}`} className="shrink-0 text-sm font-semibold text-plum underline-offset-4 hover:underline">
+              See details
+            </Link>
+          )}
+        </div>
         <p className="text-sm leading-relaxed text-muted-strong">{line}</p>
       </div>
       <div className="grid grid-cols-2 gap-2.5">
