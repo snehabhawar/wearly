@@ -2,8 +2,11 @@ import type { z } from "zod";
 import {
   ErrorBody,
   FindHangerResponse,
+  GeneratePlanResponse,
+  PlanLightsResponse,
   SwipeDecisionResponse,
   SwipeDeckResponse,
+  type GeneratePlanRequest,
   type SwipeDecisionRequest,
 } from "./index";
 
@@ -45,4 +48,14 @@ export function getSwipeDeck() {
 /** POST /api/swipe/decisions */
 export function decideSwipe(decision: SwipeDecisionRequest) {
   return call("/api/swipe/decisions", SwipeDecisionResponse, { method: "POST", body: JSON.stringify(decision) });
+}
+
+/** POST /api/plans/generate: plans the week starting on a Monday; returns the plan id */
+export function generatePlan(request: { week_start: string; replace?: GeneratePlanRequest["replace"] }) {
+  return call("/api/plans/generate", GeneratePlanResponse, { method: "POST", body: JSON.stringify(request) });
+}
+
+/** POST /api/plans/{id}/lights: that day's hangers glow purple */
+export function lightPlanDay(planId: string, day: string) {
+  return call(`/api/plans/${planId}/lights`, PlanLightsResponse, { method: "POST", body: JSON.stringify({ day }) });
 }
