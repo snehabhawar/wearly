@@ -66,8 +66,10 @@ Matches the light language in the product plan. Only these values are valid.
 | --- | --- | --- |
 | `purple` | `steady` | In today's planned outfit |
 | `amber` | `breathe` | Waiting a long time, or marked to let go |
-| `white` | `blink2` | Find it, or paired after an NFC tap |
+| `white` | `blink2` | Find it, or paired after an NFC tap. **Momentary:** the hanger blinks twice, then shows its previous light again |
 | `off` | `off` | Default |
+
+Purple, amber and off are lasting: the hanger keeps that light until the next lasting command. White is the only momentary light; the firmware plays the two blinks and then restores whatever lasting light it had. On the server, acking a white command doesn't change `hangers.led_color`, and queueing one doesn't cancel a lasting command still pending for that hanger.
 
 ---
 

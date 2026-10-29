@@ -2,22 +2,25 @@ import type { HubCommand, Light } from "@/lib/api";
 import { check, type Db } from "./db";
 
 /**
- * Queues a light for a hanger. Older commands still pending for that hanger expire, so the
- * hub can never fall back to a stale light after acking the new one.
+ * Queues a light for a hanger. A lasting light (purple, amber, off) expires older commands still
+ * pending for that hanger, so the hub can never fall back to a stale light after acking it.
+ * White blinks are momentary and expire nothing: a lasting light queued before still goes out after.
  */
 export async function queueLight(
   db: Db,
   input: { closetId: string; hangerId: string; light: Light; reason: string; expiresAt?: Date; now: Date },
 ): Promise<number> {
   const now = input.now.toISOString();
-  check(
-    await db
-      .from("commands")
-      .update({ expires_at: now })
-      .eq("hanger_id", input.hangerId)
-      .is("acked_at", null)
-      .gt("expires_at", now),
-  );
+  if (input.light.color !== "white") {
+    check(
+      await db
+        .from("commands")
+        .update({ expires_at: now })
+        .eq("hanger_id", input.hangerId)
+        .is("acked_at", null)
+        .gt("expires_at", now),
+    );
+  }
   const row = check(
     await db
       .from("commands")

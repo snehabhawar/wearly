@@ -70,7 +70,7 @@ Migrations live in `supabase/migrations/`. Types are generated into `lib/supabas
 | `plans` | `id`, `closet_id`, `week_start`, `generated_at`, `forecast jsonb` | One per closet per week |
 | `plan_items` | `id`, `plan_id`, `day`, `slot` (`top` \| `bottom` \| `outer` \| `one_piece`), `garment_id`, `hanger_id`, `reason`, `status` (`planned` \| `worn` \| `swapped` \| `skipped`) | `hanger_id` without a photographed garment = mystery pick |
 | `swipe_decisions` | `id`, `garment_id`, `decision` (`keep` \| `let_go` \| `style`), `route` (`donate` \| `resell` \| `swap`), `challenge_until`, `decided_at` | |
-| `commands` | `id bigint identity`, `closet_id`, `hanger_id`, `color`, `pattern`, `reason`, `created_at`, `expires_at` (not null, default 5 minutes), `acked_at` | Light command queue for the hub. Plan lights set their own expiry (end of that local day). On ack, a trigger copies `color`/`pattern` into `hangers.led_color`/`led_pattern` |
+| `commands` | `id bigint identity`, `closet_id`, `hanger_id`, `color`, `pattern`, `reason`, `created_at`, `expires_at` (not null, default 5 minutes), `acked_at` | Light command queue for the hub. Plan lights set their own expiry (end of that local day). On ack, a trigger copies `color`/`pattern` into `hangers.led_color`/`led_pattern`, except momentary `white/blink2` |
 | `ai_jobs` | `id`, `closet_id`, `kind` (`tryon` \| `tagging` \| `bg_remove`), `provider`, `provider_job_id`, `status`, `input jsonb`, `output jsonb`, `output_path`, `cache_key`, `error`, `created_at`, `finished_at` | *After MVP:* one table for all external AI calls |
 
 ### Views
