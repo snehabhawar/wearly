@@ -1,5 +1,11 @@
 import type { z } from "zod";
-import { ErrorBody, FindHangerResponse } from "./index";
+import {
+  ErrorBody,
+  FindHangerResponse,
+  SwipeDecisionResponse,
+  SwipeDeckResponse,
+  type SwipeDecisionRequest,
+} from "./index";
 
 /*
  * Typed fetch helpers for the app's /api/* writes (docs/frontend.md, Data fetching).
@@ -29,4 +35,14 @@ async function call<S extends z.ZodType>(path: string, schema: S, init: RequestI
 /** POST /api/hangers/{n}/find: the hanger blinks white twice */
 export function findHanger(hangerNumber: number) {
   return call(`/api/hangers/${hangerNumber}/find`, FindHangerResponse, { method: "POST" });
+}
+
+/** GET /api/swipe/deck: the ordered cards; the top card's hanger starts breathing amber */
+export function getSwipeDeck() {
+  return call("/api/swipe/deck", SwipeDeckResponse);
+}
+
+/** POST /api/swipe/decisions */
+export function decideSwipe(decision: SwipeDecisionRequest) {
+  return call("/api/swipe/decisions", SwipeDecisionResponse, { method: "POST", body: JSON.stringify(decision) });
 }
