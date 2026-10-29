@@ -12,6 +12,8 @@ import { WEAR_PROFILES, type WearProfileName } from "@/lib/wear-engine";
 const POLL_MS = 1000;
 const LOG_SIZE = 12;
 const COMMANDS_SIZE = 8;
+/** One play of the two white blinks (the led-blink2 keyframes in globals.css) */
+const BLINK_MS = 1600;
 
 type Mode = "live" | "browsed" | "tried_on" | "worn" | "worn_washed";
 type LogEntry = { key: number; time: string; hanger: number | null; event: string; result: string; tone: Tone };
@@ -56,7 +58,7 @@ const GLOW: Record<Light["color"], string> = {
   purple: "shadow-[0_0_0_6px_color-mix(in_oklab,var(--led-purple)_18%,transparent),0_0_28px_color-mix(in_oklab,var(--led-purple)_45%,transparent)]",
   amber:
     "shadow-[0_0_0_6px_color-mix(in_oklab,var(--amber)_18%,transparent),0_0_28px_color-mix(in_oklab,var(--amber)_45%,transparent)] animate-led-breathe",
-  white: "shadow-[0_0_0_6px_white,0_0_28px_color-mix(in_oklab,var(--muted-ink)_50%,transparent)] animate-led-blink2",
+  white: "shadow-[0_0_0_6px_white,0_0_28px_color-mix(in_oklab,var(--muted-ink)_50%,transparent)] animate-led-blink2-once",
 };
 
 /**
@@ -109,6 +111,8 @@ export function HubSimulator() {
   const [commands, setCommands] = useState<CommandEntry[]>([]);
   const [payload, setPayload] = useState("// nothing sent yet");
   const [status, setStatus] = useState("idle");
+  // Hangers playing a Find blink right now; their lasting light stays as it was
+  const [blinking, setBlinking] = useState<Set<number>>(new Set());
   const logKey = useRef(0);
   const polling = useRef(false);
   // Events go out one request at a time, in click order, like the hub's queue: a quick
@@ -141,7 +145,16 @@ export function HubSimulator() {
         );
         if (received.length > 0) {
           const time = clock();
-          const byHanger = new Map(received.map((c) => [c.hanger, c]));
+          // White is momentary: the hanger blinks twice, then shows its lasting light again
+          const blinks = received.filter((c) => c.color === "white").map((c) => c.hanger);
+          if (blinks.length > 0) {
+            setBlinking((prev) => new Set([...prev, ...blinks]));
+            setTimeout(
+              () => setBlinking((prev) => new Set([...prev].filter((n) => !blinks.includes(n)))),
+              BLINK_MS,
+            );
+          }
+          const byHanger = new Map(received.filter((c) => c.color !== "white").map((c) => [c.hanger, c]));
           setHangers((prev) =>
             prev?.map((h) => {
               const c = byHanger.get(h.number);
@@ -309,6 +322,7 @@ export function HubSimulator() {
                   <HangerCard
                     key={h.number}
                     hanger={h}
+                    blinking={blinking.has(h.number)}
                     quick={mode !== "live" && h.onRail && h.garmentOn}
                     onGarment={() => toggleGarment(h)}
                     onRail={() => toggleRail(h)}
@@ -403,31 +417,34 @@ export function HubSimulator() {
 
 function HangerCard({
   hanger: h,
+  blinking,
   quick,
   onGarment,
   onRail,
   onFind,
 }: {
   hanger: SimHanger;
+  blinking: boolean;
   quick: boolean;
   onGarment: () => void;
   onRail: () => void;
   onFind: () => void;
 }) {
   const known = h.garment && (h.garment.name || h.garment.category);
+  const color = blinking ? "white" : h.light.color;
   return (
     <div className="flex flex-col items-center gap-2">
       <div
         className={cn(
           "flex h-37.5 flex-col items-center rounded-2xl px-1.5 transition-[transform,opacity] duration-300",
-          GLOW[h.light.color],
+          GLOW[color],
           !h.onRail && "translate-y-6 opacity-55",
         )}
       >
         <svg width="110" height="64" viewBox="0 0 110 64" aria-hidden>
           <path d="M55 22 L55 12 Q55 4 62 4 Q68 4 68 10" fill="none" className="stroke-muted-strong" strokeWidth="3" strokeLinecap="round" />
           <path d="M55 22 L8 50 L102 50 Z" fill="none" className="stroke-muted-strong" strokeWidth="3.5" strokeLinejoin="round" />
-          <circle cx="55" cy="26" r="7" className={cn(LED_FILL[h.light.color], "stroke-ink")} strokeWidth="1" />
+          <circle cx="55" cy="26" r="7" className={cn(LED_FILL[color], "stroke-ink", blinking && "animate-led-blink2-once")} strokeWidth="1" />
         </svg>
         {h.garmentOn ? (
           <div className="relative -mt-6 size-21.5">
@@ -448,7 +465,7 @@ function HangerCard({
           #{h.number} · {h.garment?.name ?? "No photo"}
         </span>
         <span className="text-xs text-muted-strong">{stateLabel(h)}</span>
-        <span className="text-[11px] text-muted-foreground">LED: {LIGHT_LABEL[h.light.color]}</span>
+        <span className="text-[11px] text-muted-foreground">LED: {LIGHT_LABEL[color]}</span>
       </div>
       <div className="flex w-full flex-col gap-1.5">
         <button

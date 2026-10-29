@@ -107,6 +107,8 @@
   /* Hanger light patterns (docs/frontend.md, Light language in the UI) */
   --animate-led-breathe: led-breathe 3s ease-in-out infinite;
   --animate-led-blink2: led-blink2 1.6s steps(1, end) infinite;
+  /* One play, for a hanger that blinks for Find it and then goes back to its lasting light */
+  --animate-led-blink2-once: led-blink2 1.6s steps(1, end) 1;
 
   @keyframes led-breathe {
     0%,
