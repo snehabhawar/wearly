@@ -7,7 +7,7 @@ import { useCurrentCloset } from "@/lib/queries/use-current-closet";
 import { useSwipeDeck, useSwipeDecision } from "@/lib/queries/use-swipe-deck";
 
 /** The Keep-or-let-go screen on live data: loading and error states around SwipeDeck */
-export function SwipeScreen() {
+export function SwipeScreen({ embedded = false }: { embedded?: boolean }) {
   const deck = useSwipeDeck();
   const closet = useCurrentCloset();
   const rehomed = useCloset().data?.summary.rehomedThisYear;
@@ -17,7 +17,11 @@ export function SwipeScreen() {
   if (deck.isError || !closet.data) {
     return (
       <div className="flex w-full flex-col items-start gap-3">
-        <h1 className="text-3xl font-semibold md:text-[40px]">Keep or let go</h1>
+        {embedded ? (
+          <h2 className="text-[26px] font-semibold">Keep or let go</h2>
+        ) : (
+          <h1 className="text-3xl font-semibold md:text-[40px]">Keep or let go</h1>
+        )}
         <p role="alert" className="text-[15px] text-muted-strong">
           We couldn&apos;t load your deck just now. Your hangers are fine; it&apos;s the connection.
         </p>
@@ -33,6 +37,7 @@ export function SwipeScreen() {
       timeZone={closet.data.timezone}
       onDecide={(d) => decision.mutateAsync(d)}
       rehomedThisYear={rehomed}
+      embedded={embedded}
     />
   );
 }

@@ -33,6 +33,7 @@ export function SwipeDeck({
   onDecide,
   onRestart,
   rehomedThisYear,
+  embedded = false,
 }: {
   /** The deck, top card first. Cards decided here are hidden right away, before the deck reloads. */
   cards: SwipeCard[];
@@ -44,6 +45,8 @@ export function SwipeDeck({
   onRestart?: () => void;
   /** The impact counter: garments that left the closet this year */
   rehomedThisYear?: number;
+  /** Inside another screen (desktop Today): a smaller h2 title */
+  embedded?: boolean;
 }) {
   const today = useToday(timeZone);
   const [decided, setDecided] = useState<Set<string>>(new Set());
@@ -115,7 +118,11 @@ export function SwipeDeck({
     <div className="flex w-full flex-col gap-4">
       <div className="flex items-end justify-between gap-3">
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-3xl font-semibold md:text-[40px]">Keep or let go</h1>
+          {embedded ? (
+            <h2 className="text-[26px] font-semibold">Keep or let go</h2>
+          ) : (
+            <h1 className="text-3xl font-semibold md:text-[40px]">Keep or let go</h1>
+          )}
           <span className="text-[13px] text-muted-foreground">
             Waiting 6+ months, counted within each item&apos;s season
           </span>

@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 /** Signs out in the browser, then lets the proxy send the next request to /login */
-export function SignOutButton({ className }: { className?: string }) {
+export function SignOutButton({ className, iconOnly = false }: { className?: string; iconOnly?: boolean }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
 
@@ -27,7 +27,7 @@ export function SignOutButton({ className }: { className?: string }) {
       )}
     >
       <LogOut aria-hidden className="size-5" strokeWidth={1.9} />
-      {pending ? "Signing out…" : "Sign out"}
+      {iconOnly ? <span className="sr-only">Sign out</span> : pending ? "Signing out…" : "Sign out"}
     </button>
   );
 }
