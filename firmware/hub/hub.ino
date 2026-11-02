@@ -14,7 +14,9 @@ const unsigned long AUTH_BACKOFF_MS = 10000;  // a wrong secret won't fix itself
 
 WiFiClient net;
 HTTPClient http;
+const unsigned long STATUS_MS = 5000;  // how often to explain a missing Wi-Fi connection
 unsigned long nextPollAt = 0;
+unsigned long nextStatusAt = 0;
 bool wasConnected = false;
 String line;
 
@@ -106,13 +108,34 @@ void readSerial(bool connected) {
   }
 }
 
+const char* wifiStatusText(wl_status_t status) {
+  switch (status) {
+    case WL_NO_SSID_AVAIL: return "network not found: check WIFI_SSID, and that it is 2.4 GHz";
+    case WL_CONNECT_FAILED: return "connection failed: check WIFI_PASSWORD";
+    case WL_CONNECTION_LOST: return "connection lost";
+    case WL_DISCONNECTED: return "disconnected, still trying";
+    case WL_IDLE_STATUS: return "idle, still trying";
+    default: return "other";
+  }
+}
+
+// Lists the 2.4 GHz networks the hub can see, so a wrong or unseen SSID is obvious
+void printNetworks() {
+  int count = WiFi.scanNetworks();
+  Serial.printf("Networks the hub can see (%d):\n", count);
+  for (int i = 0; i < count; i++) {
+    Serial.printf("  \"%s\"  signal %d dBm  channel %d\n", WiFi.SSID(i).c_str(), WiFi.RSSI(i), WiFi.channel(i));
+  }
+  WiFi.scanDelete();
+}
+
 void setup() {
   Serial.begin(115200);
   delay(1000);
   pinMode(LED, OUTPUT);
   WiFi.mode(WIFI_STA);
-  Serial.printf("Hub MAC: %s\n", WiFi.macAddress().c_str());
-  Serial.printf("Connecting to %s, API at %s\n", WIFI_SSID, API_BASE);
+  printNetworks();
+  Serial.printf("Connecting to \"%s\", API at %s\n", WIFI_SSID, API_BASE);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);  // the ESP32 reconnects on its own after a drop
   http.setReuse(true);                   // keep the connection open between polls
 }
@@ -120,10 +143,18 @@ void setup() {
 void loop() {
   bool connected = WiFi.status() == WL_CONNECTED;
   if (connected != wasConnected) {
-    if (connected) Serial.printf("Wi-Fi connected, IP %s\n", WiFi.localIP().toString().c_str());
-    else Serial.println("Wi-Fi lost, reconnecting...");
+    if (connected) {
+      // The MAC reads as zeros until Wi-Fi has started, so print it here
+      Serial.printf("Wi-Fi connected, IP %s, hub MAC %s\n", WiFi.localIP().toString().c_str(), WiFi.macAddress().c_str());
+    } else {
+      Serial.println("Wi-Fi lost, reconnecting...");
+    }
     digitalWrite(LED, connected ? HIGH : LOW);
     wasConnected = connected;
+  }
+  if (!connected && (long)(millis() - nextStatusAt) >= 0) {
+    nextStatusAt = millis() + STATUS_MS;
+    Serial.printf("Wi-Fi: %s\n", wifiStatusText(WiFi.status()));
   }
 
   readSerial(connected);
