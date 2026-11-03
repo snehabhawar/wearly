@@ -1,12 +1,16 @@
-// Copy to secrets.h (git ignores it) and fill in.
+// Copy this file to secrets.h in the same folder and fill it in.
+// secrets.h holds passwords, so it must never be committed (it's in .gitignore).
 #pragma once
 
-// 2.4 GHz only: the ESP32 can't join 5 GHz networks
-#define WIFI_SSID "your-wifi"
-#define WIFI_PASSWORD "your-password"
+// The ESP32 only joins 2.4 GHz networks. Your laptop must be on the same one.
+#define WIFI_SSID "your-network-name"
+#define WIFI_PASS "your-wifi-password"
 
-// The PC running `pnpm dev`, by its LAN IP (find it with `ipconfig`), no trailing slash
-#define API_BASE "http://192.168.1.10:3000"
+// Where the Wearly server runs, with no slash at the end.
+// pnpm dev on your laptop: http://<laptop's IPv4 address from ipconfig>:3000
+// Deployed app (later):    https://<your-app>.vercel.app
+#define API_BASE "http://192.168.1.23:3000"
 
-// The seeded dev hub (supabase/seed.sql)
+// The seeded dev hub's secret (supabase/seed.sql).
+// The deployed database needs its own hub row and its own secret.
 #define HUB_SECRET "dev-hub-secret"
