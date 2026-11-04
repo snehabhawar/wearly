@@ -44,3 +44,4 @@ Wearly Prototype — Steps and Shopping List by Part.md
 
 # firmware: Wi-Fi password and hub secret
 firmware/**/secrets.h
+firmware/**/config.h
