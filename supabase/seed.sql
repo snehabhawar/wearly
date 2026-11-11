@@ -46,7 +46,7 @@ begin
                         price_cents, photo_path, tags_source, status, created_at)
   select ('00000000-0000-0000-0000-0000000002' || lpad(n::text, 2, '0'))::uuid,
          cid, g.name, g.category, g.color, g.seasons::text[], g.formality, g.price,
-         '/demo/garments/' || lpad(n::text, 2, '0') || '.jpg', 'user', 'active',
+         '/demo/garments/' || lpad(n::text, 2, '0') || '.webp', 'user', 'active',
          now() - interval '14 months'
   from (values
     (1,  'White oxford shirt',   'top',       'white',  '{spring,summer,fall}',  3, 4500),
