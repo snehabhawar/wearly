@@ -188,7 +188,7 @@ Rule-based, pure TS with tests. Called from `POST /api/plans/generate` (and a Su
 
 ## AI jobs (after MVP)
 
-**MVP:** no external AI calls. Style it reads pre-generated try-on images from `public/demo/tryon/`, mapped to garment IDs in `lib/demo/tryon.ts`. Generate them once by hand with FASHN's web app or API before the demo.
+**MVP:** no external AI calls. Style it reads hand-picked looks from `lib/demo/tryon.ts` (keyed by garment ID) and pre-generated try-on images from `public/demo/tryon/NN-a.webp`; until an image exists it shows an outfit board of the garment photos. The images are made once by hand before the demo (tool still to be decided).
 
 After MVP, all external AI calls go through `ai_jobs`, so they're observable, cacheable and retryable.
 

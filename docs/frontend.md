@@ -2,7 +2,7 @@
 
 One Next.js app (App Router, TypeScript) serves the homepage, the app on phone and desktop, the NFC landing pages and the dev simulator. It ships as a **PWA**. Every screen is designed in the [Wearly App Mockup](https://claude.ai/artifact/E8aWsZqMko2VrhDzJ8jNUa), so use it as the visual spec.
 
-> Status: on `dev`: `/login`, Today, Closet (live, with Find it), item detail, Swipe, Plan and `/sim`. Style it and the homepage are still to build.
+> Status: on `dev`: `/login`, Today, Closet (live, with Find it), item detail, Swipe, Plan, Style it and `/sim`. The homepage is still to build.
 
 ## MVP scope
 
@@ -38,7 +38,7 @@ One Next.js app (App Router, TypeScript) serves the homepage, the app on phone a
 | `/closet/[garmentId]` | Item detail | Item detail | Full page |
 | `/plan` | Week plan | Plan | Day strip + one day on phone, 7 columns on desktop |
 | `/swipe` | Keep or let go | Swipe | |
-| `/style/[garmentId]` | Style it (try-on) | Style it | MVP: pre-generated images from `public/demo/tryon/`. Live FASHN after MVP |
+| `/style/[garmentId]` | Style it (try-on) | Style it | MVP: looks and pre-generated images from `lib/demo/tryon.ts` (`public/demo/tryon/NN-a.webp`); until an image exists it shows an outfit board of the garment photos. `?from=swipe` sets the back link. Keep records the same decision as the deck. Live FASHN after MVP |
 | `/h/[hanger]` | NFC landing | – | *After MVP.* URL written on each sticker. Blinks the hanger white, opens its item, and offers the camera if there's no photo |
 | `/sim` | Hub simulator | Hub simulator | **Dev only**, hidden in production. Sends real events through the hub API |
 
@@ -119,7 +119,7 @@ Components marked † come after MVP.
 | `LightUpButton` | Plan | "Light up tomorrow": calls `/api/plans/{id}/lights` |
 | `SwipeDeck` | Swipe, Today (desktop) | Motion drag gestures plus Keep / Style it / Let go buttons (buttons are the accessible path) |
 | `LetGoSheet` | Swipe | Donate / Resell / Swap |
-| `TryOnViewer` | Style it, Today | Result image and combination picker. MVP uses static images; the loading state ("Dressing you up…") comes with live FASHN |
+| `StyleScreen` | Style it | Try-on image (or outfit board) and look picker, plus Keep. MVP uses static images; the loading state ("Dressing you up…") and "Wear it Thursday" (needs plan editing) come after MVP |
 | `FindItButton` | Item, Closet | Calls `/api/hangers/{n}/find`, shows "blinking white" toast |
 | `HubStatus` † | sidebar | From `devices.last_seen_at` |
 | `PhotoCapture` † | `/h/[hanger]`, Item | `<input type="file" accept="image/*" capture="environment">` |
