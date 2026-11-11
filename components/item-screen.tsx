@@ -174,8 +174,12 @@ function ItemBody({ item, today }: { item: ItemDetail; today: string | null }) {
       {item.hanger && (
         <div className="flex items-start gap-2.5">
           <FindItButton hangerNumber={item.hanger.number} className="flex-1" />
-          {/* Opens Style it once that screen exists */}
-          <Button disabled variant="secondary" className="h-11.5 flex-1 gap-2 rounded-lg font-semibold">
+          <Button
+            variant="secondary"
+            className="h-11.5 flex-1 gap-2 rounded-lg font-semibold"
+            render={<Link href={`/style/${item.garmentId}`} />}
+            nativeButton={false}
+          >
             <Sparkles aria-hidden className="size-4" />
             Style it
           </Button>

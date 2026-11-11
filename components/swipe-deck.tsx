@@ -2,6 +2,7 @@
 
 import { ExternalLink, Heart, Sparkles } from "lucide-react";
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cardSubject, DeckCard } from "@/components/deck-card";
 import { LetGoSheet, type LetGoRoute } from "@/components/let-go-sheet";
@@ -49,6 +50,7 @@ export function SwipeDeck({
   embedded?: boolean;
 }) {
   const today = useToday(timeZone);
+  const router = useRouter();
   const [decided, setDecided] = useState<Set<string>>(new Set());
   const [sheetOpen, setSheetOpen] = useState(false);
   const [toast, setToast] = useState("");
@@ -167,8 +169,12 @@ export function SwipeDeck({
             <DeckButton label="Let go" onClick={() => setSheetOpen(true)} tone="amber">
               <ExternalLink className="size-6.5" strokeWidth={2} />
             </DeckButton>
-            {/* Opens Style it once that screen exists */}
-            <DeckButton label="Style it" disabled tone="lilac" small>
+            <DeckButton
+              label="Style it"
+              onClick={() => router.push(`/style/${card.garment_id}?from=swipe`)}
+              tone="lilac"
+              small
+            >
               <Sparkles className="size-5.5" strokeWidth={2} />
             </DeckButton>
             <DeckButton label="Keep" onClick={keep} tone="plum">
