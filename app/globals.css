@@ -23,7 +23,9 @@
   --muted-strong: #5e4a66;
   --line: #e6dce8;
   --line-strong: #d8cbdd;
-  --led-purple: #8b5cc9;
+  /* Hanger LED colors (API names: purple = blue light, amber = yellow light) */
+  --led-blue: #3d7be0;
+  --led-yellow: #f2b90c;
   --heat-0: #f3eef5;
   --heat-1: #e2d5ee;
   --heat-2: #c4abe0;
@@ -71,7 +73,8 @@
   --color-muted-strong: var(--muted-strong);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
-  --color-led-purple: var(--led-purple);
+  --color-led-blue: var(--led-blue);
+  --color-led-yellow: var(--led-yellow);
   --color-heat-0: var(--heat-0);
   --color-heat-1: var(--heat-1);
   --color-heat-2: var(--heat-2);

@@ -102,7 +102,7 @@ export function SwipeDeck({
   function pickRoute(route: LetGoRoute) {
     if (!card) return;
     setLetGo((n) => n + 1);
-    const light = card.hanger_number ? ` Hanger ${card.hanger_number} breathes amber until it leaves.` : "";
+    const light = card.hanger_number ? ` Hanger ${card.hanger_number} breathes yellow until it leaves.` : "";
     decide({ garment_id: card.garment_id, decision: "let_go", route }, LET_GO_TOAST[route] + light);
   }
 

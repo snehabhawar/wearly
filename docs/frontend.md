@@ -65,13 +65,14 @@ Taken from the mockup. They are defined once as CSS variables in `app/globals.cs
 | `cream` | `#FBF7F3` | Page background |
 | `peach` | `#F8C9AA` | Accent on dark |
 | `peach-soft` | `#FCEBDD` | "Waiting" cards, reasons |
-| `amber` | `#E39A2D` | Amber light dot |
-| `amber-ink` | `#8A4A06` | Amber text (passes contrast on cream) |
+| `amber` | `#E39A2D` | Amber accent: the "waiting a while" mark, Let go button |
+| `amber-ink` | `#8A4A06` | Amber accent text (passes contrast on cream) |
 | `muted-foreground` | `#6E5F73` | Secondary text (shadcn name; `bg-muted` is `lilac`) |
 | `muted-strong` | `#5E4A66` | Body text on tinted backgrounds |
 | `line` | `#E6DCE8` | Borders (also shadcn `border`) |
 | `line-strong` | `#D8CBDD` | Input and outline-button borders (also shadcn `input`) |
-| `led-purple` | `#8B5CC9` | Purple light dot |
+| `led-blue` | `#3D7BE0` | Blue light dot (API color `purple`) |
+| `led-yellow` | `#F2B90C` | Yellow light dot (API color `amber`) |
 | `heat-0` … `heat-3` | `#F3EEF5` `#E2D5EE` `#C4ABE0` `#9B74CC` | Wear-frequency shading on the closet grid |
 
 **Type:**
@@ -87,16 +88,18 @@ Taken from the mockup. They are defined once as CSS variables in `app/globals.cs
 
 ## Light language in the UI
 
+The hanger has three separate LEDs: blue, yellow and white. The API keeps the color names `purple` and `amber` (see docs/api.md), but UI copy always says **blue** and **yellow**.
+
 The app always shows a hanger's light with the same component, `<LedDot color pattern />`, so the UI matches the closet:
 
 | Light | Dot | Motion |
 | --- | --- | --- |
-| Purple | `led-purple` with a soft ring | steady |
-| Amber | `amber` with a soft ring | slow breathing (CSS keyframes) |
+| Blue (API `purple`) | `led-blue` with a soft ring | steady |
+| Yellow (API `amber`) | `led-yellow` with a soft ring | slow breathing (CSS keyframes) |
 | White | white with a border | two quick blinks |
 | Off | none | – |
 
-**Never show color alone:** every dot has a text label nearby ("Breathing amber," "These hangers glow purple…"). Don't use red or green anywhere for item status. Respect `prefers-reduced-motion` by turning motion into a static ring.
+**Never show color alone:** every dot has a text label nearby ("Breathing yellow," "These hangers glow blue…"). Don't use red or green anywhere for item status. Respect `prefers-reduced-motion` by turning motion into a static ring.
 
 ## Components (planned)
 

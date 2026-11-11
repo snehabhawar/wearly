@@ -16,7 +16,7 @@ export function OutfitCard({
   title: string;
   subtitle?: string;
   pieces: OutfitPiece[];
-  /** The pieces' hangers glow purple */
+  /** The pieces' hangers glow blue */
   lit?: boolean;
   className?: string;
 }) {
@@ -58,7 +58,7 @@ export function OutfitCard({
       {lit && (
         <LedDot
           color="purple"
-          label="These hangers glow purple when you open the closet."
+          label="These hangers glow blue when you open the closet."
           className="text-[13px] text-muted-strong"
         />
       )}

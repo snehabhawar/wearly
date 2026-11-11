@@ -2,11 +2,11 @@ import type { Light } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const DOT: Record<Exclude<Light["color"], "off">, string> = {
-  // Steady, with a soft ring
-  purple: "bg-led-purple shadow-[0_0_0_4px_color-mix(in_oklab,var(--led-purple)_22%,transparent)]",
-  // Slow breathing
+  // API "purple": the blue LED, steady, with a soft ring
+  purple: "bg-led-blue shadow-[0_0_0_4px_color-mix(in_oklab,var(--led-blue)_22%,transparent)]",
+  // API "amber": the yellow LED, slow breathing
   amber:
-    "bg-amber shadow-[0_0_0_3px_color-mix(in_oklab,var(--amber)_30%,transparent)] animate-led-breathe",
+    "bg-led-yellow shadow-[0_0_0_3px_color-mix(in_oklab,var(--led-yellow)_30%,transparent)] animate-led-breathe",
   // Two quick blinks
   white: "border border-line-strong bg-white animate-led-blink2",
 };

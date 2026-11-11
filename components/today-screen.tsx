@@ -53,7 +53,7 @@ function longestWaiting(items: ClosetItem[]): ClosetItem | null {
 /**
  * Today: the planned outfit with its weather and a way to light its hangers, plus what's been
  * waiting. Desktop shows the swipe deck beside it (docs/frontend.md); phones link to Swipe instead,
- * so opening Today on a phone doesn't light a hanger amber.
+ * so opening Today on a phone doesn't light a hanger yellow.
  */
 export function TodayScreen() {
   const closet = useCurrentCloset();
@@ -116,10 +116,10 @@ export function TodayScreen() {
                   label={
                     <span role="status">
                       {lights.data && lights.variables?.day === day.day
-                        ? `${formatHangers(lights.data.hangers)} ${lights.data.hangers.length > 1 ? "are" : "is"} glowing purple, steady.`
+                        ? `${formatHangers(lights.data.hangers)} ${lights.data.hangers.length > 1 ? "are" : "is"} glowing blue, steady.`
                         : lights.isError
                           ? "We couldn't reach the hub just now. Try again in a moment."
-                          : "These hangers glow purple when you open the closet."}
+                          : "These hangers glow blue when you open the closet."}
                     </span>
                   }
                 />

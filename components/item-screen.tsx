@@ -17,8 +17,8 @@ import { useToday } from "@/lib/queries/use-today";
 import { cn } from "@/lib/utils";
 
 const LIGHT_CHIP: Record<Exclude<Light["color"], "off">, string> = {
-  purple: "Glowing purple",
-  amber: "Breathing amber",
+  purple: "Glowing blue",
+  amber: "Breathing yellow",
   white: "Blinking white",
 };
 
@@ -35,7 +35,7 @@ const ACTIVITY: Record<ActivityEntry["kind"], { label: string; tone: string }> =
 function note(item: ItemDetail, today: string | null): string {
   const subject = item.name ? "This one" : `Hanger ${item.hanger?.number ?? ""}`.trim();
   if (item.status === "rehomed") return "This one found a new home. Its history stays here.";
-  if (item.status === "let_go") return "Marked to let go. Its hanger breathes amber until it leaves the closet.";
+  if (item.status === "let_go") return "Marked to let go. Its hanger breathes yellow until it leaves the closet.";
   if (item.status === "missing") return "It's been out a long while. Packed, lent, or gone?";
   if (item.hanger?.away) return "Out of the closet right now.";
   if (item.idleDaysInSeason >= WAITING_IDLE_DAYS) {

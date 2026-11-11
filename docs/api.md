@@ -60,14 +60,14 @@ The hub and the app refer to hangers by their **number** (`1..n`, engraved on th
 
 ### Light vocabulary
 
-Matches the light language in the product plan. Only these values are valid.
+Matches the light language in the product plan. Only these values are valid. The hanger has three separate LEDs; the `color` names are kept from the first design, so `purple` drives the **blue** LED and `amber` the **yellow** one. App copy says blue and yellow.
 
-| `color` | `pattern` | Meaning |
-| --- | --- | --- |
-| `purple` | `steady` | In today's planned outfit |
-| `amber` | `breathe` | Waiting a long time, or marked to let go |
-| `white` | `blink2` | Find it, or paired after an NFC tap. **Momentary:** the hanger blinks twice, then shows its previous light again |
-| `off` | `off` | Default |
+| `color` | `pattern` | LED | Meaning |
+| --- | --- | --- | --- |
+| `purple` | `steady` | blue | In today's planned outfit |
+| `amber` | `breathe` | yellow | Waiting a long time, or marked to let go |
+| `white` | `blink2` | white | Find it, or paired after an NFC tap. **Momentary:** the hanger blinks twice, then shows its previous light again |
+| `off` | `off` | none | Default |
 
 Purple, amber and off are lasting: the hanger keeps that light until the next lasting command. White is the only momentary light; the firmware plays the two blinks and then restores whatever lasting light it had. On the server, acking a white command doesn't change `hangers.led_color`, and queueing one doesn't cancel a lasting command still pending for that hanger.
 

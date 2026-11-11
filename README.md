@@ -160,8 +160,8 @@ The goal is the [demo script](#demo-script-what-the-mvp-must-support), on a phon
 
 **Milestone 2: core screens (week 2)**
 - [ ] Closet: live wear grid, item detail, Find it
-- [ ] Swipe: seasonal deck, amber light, keep / let go (donate, resell, swap), rehomed, impact counter
-- [ ] Plan: rule-based planner with Open-Meteo and hard-coded events, week view, "Light up tomorrow" (purple)
+- [ ] Swipe: seasonal deck, yellow light, keep / let go (donate, resell, swap), rehomed, impact counter
+- [ ] Plan: rule-based planner with Open-Meteo and hard-coded events, week view, "Light up tomorrow" (blue)
 
 **Milestone 3: demo-ready (week 3)**
 - [ ] Today screen
@@ -188,5 +188,5 @@ Not started until the MVP is done. Roughly in priority order:
 
 1. Lift a shirt and put it straight back: the app shows **browsed**.
 2. Take a second shirt and leave it out (demo mode): a **wear** is logged live.
-3. Open Plan and tap "Light up tomorrow": tomorrow's hangers glow **purple**.
-4. Open Swipe: the forgotten item **breathes amber**. Swipe left, pick donate, pull it off the rail, and the impact counter goes up.
+3. Open Plan and tap "Light up tomorrow": tomorrow's hangers glow **blue**.
+4. Open Swipe: the forgotten item **breathes yellow**. Swipe left, pick donate, pull it off the rail, and the impact counter goes up.

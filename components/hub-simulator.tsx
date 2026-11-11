@@ -41,23 +41,23 @@ const TONE: Record<Tone, string> = {
 
 const LIGHT_LABEL: Record<Light["color"], string> = {
   off: "off",
-  purple: "purple · steady",
-  amber: "amber · breathing",
+  purple: "blue · steady",
+  amber: "yellow · breathing",
   white: "white · 2 blinks",
 };
 
 const LED_FILL: Record<Light["color"], string> = {
   off: "fill-heat-0",
-  purple: "fill-led-purple",
-  amber: "fill-amber",
+  purple: "fill-led-blue",
+  amber: "fill-led-yellow",
   white: "fill-white",
 };
 
 const GLOW: Record<Light["color"], string> = {
   off: "",
-  purple: "shadow-[0_0_0_6px_color-mix(in_oklab,var(--led-purple)_18%,transparent),0_0_28px_color-mix(in_oklab,var(--led-purple)_45%,transparent)]",
+  purple: "shadow-[0_0_0_6px_color-mix(in_oklab,var(--led-blue)_18%,transparent),0_0_28px_color-mix(in_oklab,var(--led-blue)_45%,transparent)]",
   amber:
-    "shadow-[0_0_0_6px_color-mix(in_oklab,var(--amber)_18%,transparent),0_0_28px_color-mix(in_oklab,var(--amber)_45%,transparent)] animate-led-breathe",
+    "shadow-[0_0_0_6px_color-mix(in_oklab,var(--led-yellow)_18%,transparent),0_0_28px_color-mix(in_oklab,var(--led-yellow)_45%,transparent)] animate-led-breathe",
   white: "shadow-[0_0_0_6px_white,0_0_28px_color-mix(in_oklab,var(--muted-ink)_50%,transparent)] animate-led-blink2-once",
 };
 

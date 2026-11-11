@@ -148,7 +148,7 @@ export function PlanScreen() {
                 lit.length > 0 ? (
                   <>
                     <strong className="text-ink">{longDay(tomorrow)}:</strong> {formatHangers(lit).toLowerCase()}{" "}
-                    {lit.length > 1 ? "are" : "is"} glowing purple. Open the closet and they&apos;re
+                    {lit.length > 1 ? "are" : "is"} glowing blue. Open the closet and they&apos;re
                     ready.
                   </>
                 ) : (
@@ -159,7 +159,7 @@ export function PlanScreen() {
               ) : tomorrowPlan ? (
                 <>
                   <strong className="text-ink">{longDay(tomorrow)}:</strong> &ldquo;Light up tomorrow&rdquo; makes these{" "}
-                  {tomorrowPlan.pieces.length} hangers glow purple, steady.
+                  {tomorrowPlan.pieces.length} hangers glow blue, steady.
                 </>
               ) : (
                 "Tomorrow starts next week's plan."

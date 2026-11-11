@@ -26,7 +26,7 @@ export function LetGoSheet({
       <SheetContent side="bottom" className="mx-auto w-full max-w-lg gap-2.5 rounded-t-[26px] px-5 pt-2 pb-7">
         <SheetHeader className="px-0 pr-10">
           <SheetTitle className="text-[22px] font-semibold">Where should it go?</SheetTitle>
-          <SheetDescription>Its hanger keeps breathing amber until it leaves the closet.</SheetDescription>
+          <SheetDescription>Its hanger keeps breathing yellow until it leaves the closet.</SheetDescription>
         </SheetHeader>
         {ROUTES.map(({ route, title, sub }) => (
           <button

@@ -11,7 +11,7 @@ export function cardSubject(card: SwipeCard): string {
 
 /**
  * One garment in the Keep-or-let-go deck: what it looks like, how long it has
- * waited, and the amber light on its hanger.
+ * waited, and the yellow light on its hanger.
  */
 export function DeckCard({
   card,
@@ -62,7 +62,7 @@ export function DeckCard({
         {hanger !== null && (
           <LedDot
             color="amber"
-            label={`Hanger ${hanger} is breathing amber. Grab it and decide.`}
+            label={`Hanger ${hanger} is breathing yellow. Grab it and decide.`}
             className="text-[13px] font-medium text-amber-ink"
           />
         )}
