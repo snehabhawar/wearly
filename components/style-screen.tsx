@@ -134,7 +134,7 @@ function LookPicture({ look, item }: { look: TryOnLook; item: ItemDetail }) {
           alt={`Try-on: ${item.name ?? "this piece"} ${look.sub.replace(/^\+\s*/, "with ")}`}
           fill
           sizes="(min-width: 768px) 420px, 100vw"
-          className="object-cover"
+          className="object-contain"
           onError={() => setImageFailed(true)}
           preload
         />

@@ -14,7 +14,8 @@
     "db:reset": "supabase db reset --linked",
     "db:types": "supabase gen types --linked --schema public > lib/supabase/types.ts",
     "seed:history": "tsx --env-file=.env.local scripts/seed-history.ts",
-    "photos:prepare": "tsx scripts/prepare-photos.ts"
+    "photos:prepare": "tsx scripts/prepare-photos.ts",
+    "tryon:generate": "tsx --env-file=.env.local scripts/generate-tryon.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

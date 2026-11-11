@@ -188,7 +188,7 @@ Rule-based, pure TS with tests. Called from `POST /api/plans/generate` (and a Su
 
 ## AI jobs (after MVP)
 
-**MVP:** no external AI calls. Style it reads hand-picked looks from `lib/demo/tryon.ts` (keyed by garment ID) and pre-generated try-on images from `public/demo/tryon/NN-a.webp`; until an image exists it shows an outfit board of the garment photos. The images are made once by hand before the demo (tool still to be decided).
+**MVP:** no external AI calls. Style it reads hand-picked looks from `lib/demo/tryon.ts` (keyed by garment ID) and pre-generated try-on images from `public/demo/tryon/NN-a.webp`; until an image exists it shows an outfit board of the garment photos. The images are made once before the demo with `pnpm tryon:generate` (`scripts/generate-tryon.ts`, FASHN `tryon-v1.6`, needs `FASHN_API_KEY` and `photos/tryon/model.jpg`; dry run unless `--yes`).
 
 After MVP, all external AI calls go through `ai_jobs`, so they're observable, cacheable and retryable.
 
