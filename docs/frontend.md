@@ -164,3 +164,5 @@ Matches the mockup:
 - **"Play 3-min demo script":** runs the demo steps in the browser.
 
 It calls the real hub API with `HUB_DEV_SECRET`, through a small server route that adds the secret, so the secret never reaches the browser.
+
+update
