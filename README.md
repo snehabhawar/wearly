@@ -183,10 +183,3 @@ Not started until the MVP is done. Roughly in priority order:
 7. **Smarter planning:** swap pieces, plan vs. actual, learning from skips, Google Calendar
 8. **Swipe extras:** 30-day challenge resurfacing, listing drafts from photos
 9. **Accounts:** shared closets, push notifications, Capacitor store apps
-
-## Demo script (what the MVP must support)
-
-1. Lift a shirt and put it straight back: the app shows **browsed**.
-2. Take a second shirt and leave it out (demo mode): a **wear** is logged live.
-3. Open Plan and tap "Light up tomorrow": tomorrow's hangers glow **purple**.
-4. Open Swipe: the forgotten item **breathes amber**. Swipe left, pick donate, pull it off the rail, and the impact counter goes up.
