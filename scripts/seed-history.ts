@@ -118,8 +118,9 @@ function build(ctx: Ctx): Session[] {
       }
     }
 
-    // Hanger 18: browsed constantly, never worn
-    if (rnd() < 0.18) {
+    // Hanger 18: browsed constantly, never worn. ~36 browses in 90 days, well above any
+    // hanger's share of the noise above, so it tops the Swipe deck for demo step 4.
+    if (rnd() < 0.4) {
       const left = day.start + between(7, 21) * HOUR
       out.push({ hanger: BROWSE_ONLY, leftAt: left, returnedAt: left + between(1, 15) * MIN })
     }
