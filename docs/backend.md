@@ -221,7 +221,8 @@ The logic lives in `lib/hub/` (plain TypeScript on the service-role client) and 
 
 ## Seed data
 
-- `supabase/seed.sql`: a demo user (email + password), a closet (`wear_profile = demo`, with coordinates), one hub device with `HUB_DEV_SECRET`, 24 hangers, and 18 garments with hand-written tags and photos in `public/demo/`. Hangers 19–24 have no photo. The garments don't follow the mockup's layout: the mockup is the visual spec, and screen content follows this seed.
+- `supabase/seed.sql`: a demo user (email + password), a closet (`wear_profile = demo`, with coordinates), one hub device with `HUB_DEV_SECRET`, 24 hangers, and 18 garments with hand-written tags and photos at `public/demo/garments/NN.webp` (NN = hanger number). Hangers 19–24 have no photo. A photo file that doesn't exist yet falls back to the garment's silhouette.
+- `scripts/prepare-photos.ts` (`pnpm photos:prepare`): turns `photos/raw/NN.jpg` (gitignored, named by hanger number) into those WebP files. It removes the background locally with rembg (`scripts/remove-bg.py`, model `birefnet-general-lite`; needs Python and `pip install "rembg[cpu]"`), caches cutouts in `photos/cutouts/`, then trims, centers and pads each garment on an 800 px transparent square. No external API; this is a dev-time step, not part of the app. The garments don't follow the mockup's layout: the mockup is the visual spec, and screen content follows this seed.
 - `scripts/seed-history.ts`: generates about 3 months of plausible `sensor_events` and replays them, so stats look real. It includes:
   - a few clearly forgotten items (hangers 8, 12, 18 and 24),
   - one item that's often browsed but never worn (hanger 18),
