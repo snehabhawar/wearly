@@ -4,13 +4,24 @@ import { authenticateHub, type HubDevice } from "./auth";
 import { check, type Db } from "./db";
 
 /*
- * Dev-only helpers behind /api/sim/*: the /sim page plays the hub for the dev closet.
+ * Helpers behind /api/sim/*: the /sim page plays the hub for the dev closet.
+ * On in development; in production only with SIM_ENABLED=true, and only for the closet's owner.
  */
 
-/** The dev hub (HUB_DEV_SECRET), or null in production or when the secret matches no device */
-export async function simDevice(db: Db, now: Date): Promise<HubDevice | null> {
-  if (process.env.NODE_ENV === "production") return null;
-  return authenticateHub(db, process.env.HUB_DEV_SECRET ?? null, now);
+/** The simulator runs in development, and in production only when SIM_ENABLED=true */
+export function simEnabled(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.SIM_ENABLED === "true";
+}
+
+/**
+ * The dev hub (HUB_DEV_SECRET), or null when the simulator is off or the secret matches no device.
+ * In production the caller must be signed in as the owner of that hub's closet (viewerClosetId).
+ */
+export async function simDevice(db: Db, now: Date, viewerClosetId: string | null): Promise<HubDevice | null> {
+  if (!simEnabled()) return null;
+  const device = await authenticateHub(db, process.env.HUB_DEV_SECRET ?? null, now);
+  if (device && process.env.NODE_ENV === "production" && device.closetId !== viewerClosetId) return null;
+  return device;
 }
 
 export type SimHanger = {

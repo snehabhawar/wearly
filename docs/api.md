@@ -172,7 +172,7 @@ All app endpoints act on the caller's closet. A user with several closets passes
 
 ### Garments
 
-On branch `feat/camera` (after MVP): the photo and details endpoints below exist; the rest is still spec.
+On `dev` (built early, after-MVP scope): the photo and details endpoints below exist; the rest is still spec.
 
 | Method & path | Body | Does |
 | --- | --- | --- |
@@ -231,7 +231,7 @@ In the MVP, the sweep runs on ingest and on command polls, and purple lights are
 
 ## Dev-only
 
-Disabled when `NODE_ENV=production`.
+On in development. In production they return 404 unless `SIM_ENABLED=true`, and then only for a request signed in as the owner of the dev hub's closet.
 
 | Method & path | Does |
 | --- | --- |

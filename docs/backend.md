@@ -91,7 +91,7 @@ Enabled on `hangers`, `absences`, `wears` and `commands` (plus `ai_jobs` after M
 
 ### Storage buckets
 
-*After MVP.* The MVP serves demo photos and try-on images as static files from `public/demo/`. On branch `feat/camera`, the `garments` bucket exists (migration `20261111120000_garment_photos`): private, with storage policies that let a user reach only folders of the closet they own (`owns_closet` on the first path segment).
+*After MVP.* The MVP serves demo photos and try-on images as static files from `public/demo/`. On `dev`, the `garments` bucket exists (migration `20261111120000_garment_photos`): private, with storage policies that let a user reach only folders of the closet they own (`owns_closet` on the first path segment).
 
 | Bucket | Contents | Access |
 | --- | --- | --- |
@@ -205,7 +205,7 @@ Check FASHN's current docs for model names, input fields and the webhook format 
 
 ### Photo pipeline
 
-On branch `feat/camera`, steps 1–2 run in `lib/garments/server.ts` inside `POST /api/garments/{id}/photo`, as the signed-in user (RLS on `garments` and on the bucket).
+On `dev`, steps 1–2 run in `lib/garments/server.ts` inside `POST /api/garments/{id}/photo`, as the signed-in user (RLS on `garments` and on the bucket).
 
 1. The original, turned upright and at most 1600 px, is uploaded to `garments/{closet}/{garment}/original.jpg`.
 2. **Background removal** with FASHN's `background-remove` model (`lib/fashn/`, 1 credit per photo), then framed like the demo photos (`lib/photos/frame.ts`: trimmed, centered, 800 px transparent WebP) into `cutout.webp`, which is shown everywhere the garment is. `photo_path` becomes `/api/garments/{id}/photo?v=<ms>`.

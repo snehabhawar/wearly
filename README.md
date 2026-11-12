@@ -71,12 +71,12 @@ app/
   (marketing)/page.tsx        homepage (short MVP version)
   (app)/today | closet | closet/[garmentId] | plan | swipe | style/[garmentId]
   h/[hanger]/                 † NFC landing page
-  sim/                        virtual hub simulator (dev only: 404 in production)
+  sim/                        virtual hub simulator (404 in production unless SIM_ENABLED)
   login/
   api/
     hub/events, hub/commands, hub/commands/ack
     hangers/[number]/find, plans/, swipe/
-    sim/                      dev-only helpers for /sim
+    sim/                      helpers for /sim
     garments/, wears/, outfits/, plan-items/, tryon/, webhooks/, cron/   †
 components/                   UI components (see docs/frontend.md)
 lib/
@@ -121,7 +121,8 @@ Copy `.env.example` to `.env.local` and fill in:
 | `NEXT_PUBLIC_APP_URL` | Absolute app URL |
 | `HUB_DEV_SECRET` | Secret of the seeded dev hub; the simulator sends it |
 | `WEAR_PROFILE` | `real` or `demo` (default for new closets; demo uses seconds) |
-| `FASHN_API_KEY` | Dev-time only: `pnpm tryon:generate`. The app makes no AI calls in the MVP |
+| `FASHN_API_KEY` | Server only: background removal for in-app garment photos (1 credit each), and `pnpm tryon:generate` |
+| `SIM_ENABLED` | `true` turns `/sim` on in production, for the closet owner only (always on in development) |
 
 After MVP: `CRON_SECRET`, `FASHN_WEBHOOK_SECRET`, `ANTHROPIC_API_KEY`.
 
@@ -147,8 +148,9 @@ Other scripts: `pnpm test` (Vitest), `pnpm lint`, `pnpm build`, `pnpm db:push` (
 
 ### Deploying (Vercel)
 
-- Add the variables from the table above in the Vercel project (Production), with `NEXT_PUBLIC_APP_URL` set to the deployed URL. `FASHN_API_KEY` isn't needed.
-- `/sim` and `/api/sim/*` are off in production (`NODE_ENV`), so a deployed demo needs the real hub, or run the simulator from a local `pnpm dev` against the same Supabase project.
+- Add the variables from the table above in the Vercel project (Production), with `NEXT_PUBLIC_APP_URL` set to the deployed URL. `FASHN_API_KEY` is needed for in-app photos.
+- Apply the migrations to the Supabase project first (`pnpm db:push`): in-app photos need the private `garments` storage bucket.
+- `/sim` and `/api/sim/*` are off in production unless `SIM_ENABLED=true`. Even then, only someone signed in as the dev closet's owner (the demo account) can use them.
 - The seeded hub secret (`dev-hub-secret`) and the demo password are in this repo. Anyone who knows them can send hub events or sign in to the demo closet, so change both in the database before sharing the URL publicly, and run `pnpm db:reset` + `pnpm seed:history` before a demo.
 
 ## Roadmap
@@ -182,7 +184,7 @@ The goal is the [demo script](#demo-script-what-the-mvp-must-support), on a phon
 
 Not started until the MVP is done. Roughly in priority order:
 
-1. **Photos:** upload from the phone, background removal, AI tagging with Claude (photo upload + FASHN background removal in progress on branch `feat/camera`)
+1. **Photos:** upload from the phone, background removal, AI tagging with Claude (photo upload + FASHN background removal done on `dev`; AI tagging next)
 2. **NFC:** `/h/[hanger]` sticker pages, re-pairing a hanger, "tap, snap, done"
 3. **Live FASHN try-on:** model photo, job pipeline, webhook, caching
 4. **Full homepage** with waitlist

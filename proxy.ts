@@ -45,6 +45,6 @@ function redirectKeepingCookies(request: NextRequest, from: NextResponse, to: st
 }
 
 export const config = {
-  // Signed-in screens (the (app) route group) plus /login
-  matcher: ["/today/:path*", "/closet/:path*", "/plan/:path*", "/swipe/:path*", "/style/:path*", "/login"],
+  // Signed-in screens (the (app) route group), the simulator, plus /login
+  matcher: ["/today/:path*", "/closet/:path*", "/plan/:path*", "/swipe/:path*", "/style/:path*", "/sim", "/login"],
 };

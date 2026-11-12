@@ -40,7 +40,7 @@ One Next.js app (App Router, TypeScript) serves the homepage, the app on phone a
 | `/swipe` | Keep or let go | Swipe | |
 | `/style/[garmentId]` | Style it (try-on) | Style it | MVP: looks and pre-generated images from `lib/demo/tryon.ts` (`public/demo/tryon/NN-a.webp`); until an image exists it shows an outfit board of the garment photos. `?from=swipe` sets the back link. Keep records the same decision as the deck. Live FASHN after MVP |
 | `/h/[hanger]` | NFC landing | – | *After MVP.* URL written on each sticker. Blinks the hanger white, opens its item, and offers the camera if there's no photo |
-| `/sim` | Hub simulator | Hub simulator | **Dev only**, hidden in production. Sends real events through the hub API |
+| `/sim` | Hub simulator | Hub simulator | **Dev only**, hidden in production unless `SIM_ENABLED=true` (then signed-in owner only). Sends real events through the hub API |
 
 Route groups: `app/(marketing)` for the homepage (no app shell), `app/(app)` for signed-in screens (shared shell). The auth guard is `proxy.ts`: it refreshes the Supabase session, sends signed-out visitors to `/login?next=…` and signed-in ones from `/login` to `/today`; add new signed-in routes to its `matcher`. Sign-in and sign-out run in the browser through `lib/supabase/client.ts`.
 
@@ -122,7 +122,7 @@ Components marked † come after MVP.
 | `StyleScreen` | Style it | Try-on image (or outfit board) and look picker, plus Keep. MVP uses static images; the loading state ("Dressing you up…") and "Wear it Thursday" (needs plan editing) come after MVP |
 | `FindItButton` | Item, Closet | Calls `/api/hangers/{n}/find`, shows "blinking white" toast |
 | `HubStatus` † | sidebar | From `devices.last_seen_at` |
-| `PhotoCapture` | Item (`/h/[hanger]` later) | On branch `feat/camera`. `<input type="file" accept="image/*" capture="environment">`; shrinks the photo to 1600 px JPEG in the browser, uploads it, then shows `GarmentDetailsForm` (name + type). Photos from storage load unoptimized in `GarmentThumb` (the route needs the sign-in cookie) |
+| `PhotoCapture` | Item (`/h/[hanger]` later) | `<input type="file" accept="image/*" capture="environment">`; shrinks the photo to 1600 px JPEG in the browser, uploads it, then shows `GarmentDetailsForm` (name + type). Photos from storage load unoptimized in `GarmentThumb` (the route needs the sign-in cookie) |
 
 Base primitives (Button, Sheet, Dialog, Toast, Tabs) come from shadcn/ui, restyled with the tokens.
 
