@@ -15,6 +15,9 @@
  *   18 = every look of garment 18; 18-a = just that look.
  *   Without --yes it only prints the plan and the credits it would use (no API calls).
  *   --reframe redoes only the crop from the saved FASHN result (free).
+ *   --from=2 restarts a look's chain at step 2, on the saved result of step 1.
+ *   --segment asks FASHN to remove the model's own garment first (segmentation_free: false);
+ *   use it when a new top keeps the length of what the model wears (a crop top).
  * Needs: FASHN_API_KEY in .env.local, a full-body photo at photos/tryon/model.jpg,
  * and Python with rembg for the crop.
  * Docs (checked 2026-11-11): https://docs.fashn.ai/api-reference/tryon-v1-6
@@ -45,6 +48,8 @@ const args = process.argv.slice(2);
 const force = args.includes("--force");
 const spend = args.includes("--yes");
 const reframeOnly = args.includes("--reframe");
+const segment = args.includes("--segment");
+const fromStep = Number(args.find((a) => a.startsWith("--from="))?.slice("--from=".length) ?? 1);
 // "18" picks every look of garment 18, "18-a" one look
 const only = args.filter((a) => /^\d+(-[a-z])?$/.test(a)).map((a) => {
   const [n, look] = a.split("-");
@@ -85,7 +90,14 @@ async function fashn(key: string, modelImage: string, garmentImage: string, cate
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model_name: "tryon-v1.6",
-      inputs: { model_image: modelImage, garment_image: garmentImage, category, mode: "quality", output_format: "png" },
+      inputs: {
+        model_image: modelImage,
+        garment_image: garmentImage,
+        category,
+        mode: "quality",
+        output_format: "png",
+        ...(segment && { segmentation_free: false }),
+      },
     }),
   });
   const started = (await run.json()) as { id?: string; error?: unknown };
@@ -135,17 +147,31 @@ async function frame(src: string, out: string): Promise<void> {
   }
   if (bottom < 0) throw new Error(`No person found in ${src}`);
 
+  // A 3:4 box around the person plus a margin, never cutting them off
   const pad = Math.round((bottom - top) * MARGIN);
-  const height = Math.min(info.height, bottom - top + 2 * pad);
-  const width = Math.min(info.width, Math.round((height * OUT.width) / OUT.height));
-  const clamp = (v: number, max: number) => Math.max(0, Math.min(v, max));
-  const box = {
-    left: clamp(Math.round((left + right) / 2 - width / 2), info.width - width),
-    top: clamp(top - pad, info.height - height),
-    width,
-    height,
+  let height = bottom - top + 2 * pad;
+  let width = Math.round((height * OUT.width) / OUT.height);
+  if (right - left + 2 * pad > width) {
+    width = right - left + 2 * pad;
+    height = Math.round((width * OUT.height) / OUT.width);
+  }
+  // Stay inside the image when the box fits; else grow the image by mirroring its edges
+  const place = (center: number, size: number, max: number) =>
+    size <= max ? Math.max(0, Math.min(Math.round(center - size / 2), max - size)) : Math.round(center - size / 2);
+  const boxLeft = place((left + right) / 2, width, info.width);
+  const boxTop = place((top + bottom) / 2, height, info.height);
+  const ext = {
+    left: Math.max(0, -boxLeft),
+    top: Math.max(0, -boxTop),
+    right: Math.max(0, boxLeft + width - info.width),
+    bottom: Math.max(0, boxTop + height - info.height),
   };
-  await sharp(src).extract(box).resize(OUT.width, OUT.height, { fit: "cover" }).webp({ quality: 82 }).toFile(out);
+  const grown = await sharp(src).extend({ ...ext, extendWith: "mirror" }).toBuffer();
+  await sharp(grown)
+    .extract({ left: boxLeft + ext.left, top: boxTop + ext.top, width, height })
+    .resize(OUT.width, OUT.height)
+    .webp({ quality: 82 })
+    .toFile(out);
 }
 
 async function main() {
@@ -171,7 +197,8 @@ async function main() {
   }
 
   const todo = jobs.filter((j) => force || !existsSync(j.out));
-  const credits = todo.reduce((sum, j) => sum + j.steps.length, 0);
+  const startAt = (j: (typeof jobs)[number]) => Math.min(Math.max(fromStep, 1), j.steps.length);
+  const credits = todo.reduce((sum, j) => sum + j.steps.length - startAt(j) + 1, 0);
 
   for (const j of jobs) {
     const done = !todo.includes(j);
@@ -192,11 +219,14 @@ async function main() {
 
   const model = await dataUri(MODEL_PHOTO);
   for (const j of todo) {
-    let current = model;
-    let result: Buffer | null = null;
+    const start = startAt(j);
+    const resume = stepFile(j.out, start - 1);
+    if (start > 1 && !existsSync(resume)) throw new Error(`--from=${start} needs ${resume} from an earlier run`);
+    let current = start > 1 ? `data:image/png;base64,${readFileSync(resume).toString("base64")}` : model;
     for (const [i, step] of j.steps.entries()) {
+      if (i + 1 < start) continue;
       process.stdout.write(`  ${path.basename(j.out)}: ${step.name}... `);
-      result = await fashn(key, current, await dataUri(garmentPhoto(step.n)), FASHN_CATEGORY[step.category]);
+      const result = await fashn(key, current, await dataUri(garmentPhoto(step.n)), FASHN_CATEGORY[step.category]);
       await sharp(result).toFile(stepFile(j.out, i + 1));
       current = `data:image/png;base64,${result.toString("base64")}`;
       console.log("done");
