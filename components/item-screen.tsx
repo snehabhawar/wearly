@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FindItButton } from "@/components/find-it-button";
 import { GarmentThumb } from "@/components/garment-thumb";
 import { LedDot } from "@/components/led-dot";
+import { PhotoCapture } from "@/components/photo-capture";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import type { Light } from "@/lib/api";
@@ -112,6 +113,7 @@ function ItemBody({ item, today }: { item: ItemDetail; today: string | null }) {
           />
         )}
       </div>
+      {item.status === "active" && <PhotoCapture item={item} />}
 
       <div className="flex flex-col gap-2">
         <h1 className="text-[28px] font-semibold">{item.name ?? `Hanger ${item.hanger?.number ?? ""}`}</h1>
