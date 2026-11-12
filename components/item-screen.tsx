@@ -86,7 +86,7 @@ function ItemBody({ item, today }: { item: ItemDetail; today: string | null }) {
   return (
     <>
       <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-3xl bg-linear-160 from-plum-soft to-peach-soft md:h-72">
-        {item.name !== null || item.category !== null ? (
+        {item.name !== null || item.category !== null || item.photoPath !== null ? (
           <GarmentThumb
             garment={item}
             hangerNumber={item.hanger?.number ?? null}

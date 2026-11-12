@@ -108,7 +108,7 @@ export function ClosetView({ items, summary }: { items: ClosetItem[]; summary: C
 }
 
 function SelectedHanger({ item }: { item: ClosetItem }) {
-  const known = item.name !== null || item.category !== null;
+  const known = item.name !== null || item.category !== null || item.photoPath !== null;
   const waiting = isWaiting(item);
   const line = waiting
     ? item.lastWornOn
