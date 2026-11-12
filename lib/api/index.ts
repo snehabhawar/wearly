@@ -1,4 +1,5 @@
 export * from "./common";
+export * from "./garments";
 export * from "./hangers";
 export * from "./hub";
 export * from "./plans";

@@ -9,7 +9,7 @@ All endpoints are Next.js route handlers under `app/api/`. Request and response 
 
 Conventions for values: dates are `YYYY-MM-DD` in the closet's timezone, timestamps are ISO 8601 with offset, money is in cents, row ids are uuids, and hangers are addressed by **number** in URLs and hub payloads.
 
-> Status: specification. Nothing is implemented yet.
+> Status: on `dev`, every MVP endpoint here is implemented: the hub API, the dev-only `/api/sim/*` routes, Find it, swipe and plan. Endpoints marked *after MVP* are still specification. `requests/hub.http` has runnable examples.
 
 ## MVP scope
 
@@ -60,14 +60,16 @@ The hub and the app refer to hangers by their **number** (`1..n`, engraved on th
 
 ### Light vocabulary
 
-Matches the light language in the product plan. Only these values are valid.
+Matches the light language in the product plan. Only these values are valid. The hanger has three separate LEDs; the `color` names are kept from the first design, so `purple` drives the **blue** LED and `amber` the **yellow** one. App copy says blue and yellow.
 
-| `color` | `pattern` | Meaning |
-| --- | --- | --- |
-| `purple` | `steady` | In today's planned outfit |
-| `amber` | `breathe` | Waiting a long time, or marked to let go |
-| `white` | `blink2` | Find it, or paired after an NFC tap |
-| `off` | `off` | Default |
+| `color` | `pattern` | LED | Meaning |
+| --- | --- | --- | --- |
+| `purple` | `steady` | blue | In today's planned outfit |
+| `amber` | `breathe` | yellow | Waiting a long time, or marked to let go |
+| `white` | `blink2` | white | Find it, or paired after an NFC tap. **Momentary:** the hanger blinks twice, then shows its previous light again |
+| `off` | `off` | none | Default |
+
+Purple, amber and off are lasting: the hanger keeps that light until the next lasting command. White is the only momentary light; the firmware plays the two blinks and then restores whatever lasting light it had. On the server, acking a white command doesn't change `hangers.led_color`, and queueing one doesn't cancel a lasting command still pending for that hanger.
 
 ---
 
@@ -168,12 +170,15 @@ All app endpoints act on the caller's closet. A user with several closets passes
 | `POST /api/hangers/{number}/find` | – | Queues `white/blink2` on that hanger. `202 { command_id }` |
 | `POST /api/hangers/{number}/assign` *(after MVP)* | `{ "garment_id": "uuid" }` or `{ "new_garment": { ... } }` | Re-pairs a hanger after an NFC tap. Ends the old assignment, starts a new one, blinks white |
 
-### Garments (after MVP)
+### Garments
+
+On `dev` (built early, after-MVP scope): the photo and details endpoints below exist; the rest is still spec.
 
 | Method & path | Body | Does |
 | --- | --- | --- |
-| `PATCH /api/garments/{id}` | `{ name?, category?, color?, seasons?, formality?, price_cents? }` | Edit details; sets `tags_source = 'user'` for changed tags |
-| `POST /api/garments/{id}/photo` | `multipart/form-data` with `photo` | Stores the original, then starts background-removal and tagging jobs. `202 { jobs: [...] }` |
+| `PATCH /api/garments/{id}` | `{ name?, category? }` (at least one; name 1–60 chars, trimmed) | Edits details and sets `tags_source = 'user'`. `200 { id, name, category }`. After MVP: `color`, `seasons`, `formality`, `price_cents` too |
+| `POST /api/garments/{id}/photo` | `multipart/form-data` with `photo` (an image, ≤ 4 MB) | Stores the original, removes the background with FASHN (synchronous, a few seconds) and frames the cutout. `200 { photo_path }`. `400` when no garment is found in the photo, `502 upstream_error` when FASHN fails (the original stays saved). AI tagging comes later |
+| `GET /api/garments/{id}/photo` | – | `302` to a 1-hour signed URL of the cutout. `photo_path` points here (`/api/garments/{id}/photo?v=<ms>`), so `<img>` tags just work |
 | `POST /api/wears` | `{ garment_id, worn_on }` | Manual wear (folded clothes, corrections) |
 | `POST /api/outfits/{id}/confirm` | `{ correct: boolean, garment_ids?: [] }` | Confirms or corrects an inferred outfit |
 
@@ -226,11 +231,16 @@ In the MVP, the sweep runs on ingest and on command polls, and purple lights are
 
 ## Dev-only
 
-Disabled when `NODE_ENV=production`.
+On in development. In production they return 404 unless `SIM_ENABLED=true`, and then only for a request signed in as the owner of the dev hub's closet.
 
 | Method & path | Does |
 | --- | --- |
 | `POST /api/sim/events` | Same body as `POST /api/hub/events`; the server adds `HUB_DEV_SECRET` and forwards to the hub ingest, so the `/sim` page never holds the secret |
-| `POST /api/sim/reset` | Resets hangers to "in closet," clears open absences and commands for the dev closet |
+| `POST /api/sim/reset` | Resets hangers to "in closet" with lights off, drops open absences (and their provisional wears) and pending commands for the dev closet, and undoes the swipe deck: decisions are dropped and garments let go through it come back to active on their hanger. `200 { hangers }` |
+| `POST /api/sim/poll` | One hub poll cycle: runs the sweep, returns the pending commands and acks them all, as the firmware would. `200 { commands, sweep }` |
+| `GET /api/sim/state` | The dev closet's wear profile and hangers: sensors, light and current garment. `200 { profile, hangers }` |
+| `POST /api/sim/lights` | `{ hangers: number[], light }`: queues that light on those hangers (Find it, lights off). `202 { command_ids }` |
+
+`POST /api/sim/events` also returns `absences`: each touched hanger's latest absence with its classification, for the simulator's event log.
 
 The simulator needs no special endpoint to fake long durations. To simulate "out for 8 hours," it sends the `garment_on: false` event with `age_ms: 28800000` and then the `garment_on: true` event with `age_ms: 0`, all through the normal hub API.

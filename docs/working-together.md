@@ -1,5 +1,7 @@
 # Working together
 
+> **Update 2026-10-29:** Tam now builds the whole MVP on the `dev` branch, so the split below no longer applies. Stubs (B3) were skipped in favor of real routes. The ownership and contract rules still hold for anyone joining.
+
 Two people build the MVP in parallel: one on the **frontend**, one on the **backend**. This page is what we agreed on so the two halves connect without surprises.
 
 ## The contract
@@ -65,7 +67,7 @@ Steps marked ⇄ are sync points: the other side is waiting on them.
 | B2 ⇄ | `lib/supabase/` clients: browser, server (cookie session), admin (service role, server-only), plus a "current closet" helper | Unblocks `/login` and all reads. Target: day 2 |
 | B3 ⇄ | Stub routes for every MVP endpoint, returning fixtures that pass the `lib/api/` schemas | Unblocks frontend actions. Target: day 3 |
 | B4 | Wear engine in `lib/wear-engine/` with Vitest tests; fix and wire `scripts/seed-history.ts` | |
-| B5 | Hub API: `events` (through `ingest_hanger_event`), `commands`, `ack`, and the sweep | Then hand the contract to firmware |
+| B5 | Hub API: `events` (through `lib/hub/`), `commands`, `ack`, and the sweep | Then hand the contract to firmware |
 | B6 | `/api/sim/events` and `/api/sim/reset` | `/sim` goes live |
 | B7 | Real `find`, `plans/{id}/lights`, `swipe/deck`, `swipe/decisions` | |
 | B8 | Planner (`lib/planner/`), Open-Meteo, hard-coded demo events, `plans/generate` | |

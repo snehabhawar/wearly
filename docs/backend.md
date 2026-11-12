@@ -2,7 +2,7 @@
 
 The backend is Supabase (Postgres, Auth, Storage, Realtime, pg_cron) plus Next.js route handlers on Vercel. The domain logic (wear engine, planner, deck, AI clients) lives in `lib/` as plain TypeScript with no Next.js imports.
 
-> Status: specification. Nothing is implemented yet. Endpoint shapes are in [api.md](api.md).
+> Status: the MVP backend is implemented on `dev`: schema, RLS and views, the wear engine, hub ingest and the sweep, the swipe deck and the planner. Sections marked *after MVP* are still specification. Endpoint shapes are in [api.md](api.md).
 
 ## MVP scope
 
@@ -11,7 +11,7 @@ The MVP covers the demo script and nothing more. Everything marked *after MVP* b
 **In the MVP**
 - Tables: `closets` (with `owner_id`), `devices`, `hangers`, `garments`, `hanger_assignments`, `sensor_events`, `absences`, `wears`, `plans`, `plan_items`, `swipe_decisions`, `commands`; views `garment_stats`, `closet_summary`
 - RLS by closet owner (`owner_id = auth.uid()`)
-- Hub ingest through `ingest_hanger_event`, and the wear engine with `real` and `demo` profiles
+- Hub ingest in `lib/hub/`, and the wear engine with `real` and `demo` profiles
 - A sweep that runs on ingest and on the hub's command polls, with no cron
 - A rule-based planner using Open-Meteo, hard-coded calendar events and wear history
 - Swipe deck, decisions, rehoming and impact counter
@@ -44,7 +44,7 @@ Migrations live in `supabase/migrations/`. Types are generated into `lib/supabas
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| `closets` | `id`, `owner_id`, `name`, `timezone`, `wear_profile` (`real` \| `demo`), `latitude`, `longitude` | One per user. `timezone` decides local dates; the coordinates feed the forecast |
+| `closets` | `id`, `owner_id`, `name`, `timezone`, `wear_profile` (`real` \| `demo`), `latitude`, `longitude`, `last_swept_at` | One per user. `timezone` decides local dates; the coordinates feed the forecast; `last_swept_at` throttles the closet-wide sweep |
 | `closet_members` | `closet_id`, `user_id`, `role` (`owner` \| `member`) | *After MVP:* shared closets. RLS then switches from `owner_id` to membership |
 | `profiles` | `user_id`, `display_name`, `model_photo_path` | *After MVP:* model photo for live FASHN try-on |
 | `devices` | `id`, `closet_id`, `kind` (`hub`), `name`, `secret_hash`, `last_seen_at` | Hub auth. Secrets stored hashed |
@@ -70,7 +70,7 @@ Migrations live in `supabase/migrations/`. Types are generated into `lib/supabas
 | `plans` | `id`, `closet_id`, `week_start`, `generated_at`, `forecast jsonb` | One per closet per week |
 | `plan_items` | `id`, `plan_id`, `day`, `slot` (`top` \| `bottom` \| `outer` \| `one_piece`), `garment_id`, `hanger_id`, `reason`, `status` (`planned` \| `worn` \| `swapped` \| `skipped`) | `hanger_id` without a photographed garment = mystery pick |
 | `swipe_decisions` | `id`, `garment_id`, `decision` (`keep` \| `let_go` \| `style`), `route` (`donate` \| `resell` \| `swap`), `challenge_until`, `decided_at` | |
-| `commands` | `id bigint identity`, `closet_id`, `hanger_id`, `color`, `pattern`, `reason`, `created_at`, `expires_at`, `acked_at` | Light command queue for the hub |
+| `commands` | `id bigint identity`, `closet_id`, `hanger_id`, `color`, `pattern`, `reason`, `created_at`, `expires_at` (not null, default 5 minutes), `acked_at` | Light command queue for the hub. Plan lights set their own expiry (end of that local day). On ack, a trigger copies `color`/`pattern` into `hangers.led_color`/`led_pattern`, except momentary `white/blink2` |
 | `ai_jobs` | `id`, `closet_id`, `kind` (`tryon` \| `tagging` \| `bg_remove`), `provider`, `provider_job_id`, `status`, `input jsonb`, `output jsonb`, `output_path`, `cache_key`, `error`, `created_at`, `finished_at` | *After MVP:* one table for all external AI calls |
 
 ### Views
@@ -91,11 +91,11 @@ Enabled on `hangers`, `absences`, `wears` and `commands` (plus `ai_jobs` after M
 
 ### Storage buckets
 
-*After MVP.* The MVP serves demo photos and try-on images as static files from `public/demo/`.
+*After MVP.* The MVP serves demo photos and try-on images as static files from `public/demo/`. On `dev`, the `garments` bucket exists (migration `20261111120000_garment_photos`): private, with storage policies that let a user reach only folders of the closet they own (`owns_closet` on the first path segment).
 
 | Bucket | Contents | Access |
 | --- | --- | --- |
-| `garments` | Originals and background-removed cutouts: `{closet_id}/{garment_id}/original.jpg`, `cutout.png` | Private, signed URLs |
+| `garments` | Originals and background-removed cutouts: `{closet_id}/{garment_id}/original.jpg`, `cutout.webp` | Private, signed URLs |
 | `profiles` | Model photos for try-on | Private, owner only |
 | `tryon` | FASHN results copied out of FASHN's temporary URLs | Private, signed URLs |
 
@@ -137,11 +137,13 @@ When absences close as `worn`, group those whose `left_at` falls within **30 min
 
 ### Sweep
 
-**MVP:** the sweep runs for a hanger on every ingest. It also runs for the whole closet on the hub's `GET /api/hub/commands` polls, throttled to every poll in `demo` and every 5 minutes in `real`. The hub polls every second, so no cron is needed. It handles:
+**MVP:** the sweep runs for a hanger on every ingest. It also runs for the whole closet on the hub's `GET /api/hub/commands` polls, throttled to every poll in `demo` and every 5 minutes in `real` (tracked in `closets.last_swept_at`). The hub polls every second, so no cron is needed. It handles:
 
 - Open absences past the `worn` threshold: write a provisional wear now, so it shows up the same day.
-- Open absences past the `missing` threshold: mark them missing.
-- Let-go garments that have left: mark them rehomed (see [Swipe deck](#swipe-deck)).
+- Open absences past the `missing` threshold: mark them missing and delete their provisional wear (missing isn't a wear).
+- Let-go garments that have left: mark them rehomed (see [Swipe deck](#swipe-deck)). Ending the assignment also closes the garment's open absence at that moment, so the next garment hung on the hanger starts clean.
+
+`replayHanger()` in `lib/wear-engine/replay.ts` applies the same rules to a hanger's whole event history; the seed history script uses it, and so will the replay script.
 - Expiring commands older than `expires_at`.
 
 *After MVP:* outfit grouping joins the sweep, and a pg_cron job (`/api/cron/sweep`) covers times when the hub is offline. Vercel's free plan only runs cron jobs daily, which is why scheduling would live in pg_cron.
@@ -186,7 +188,7 @@ Rule-based, pure TS with tests. Called from `POST /api/plans/generate` (and a Su
 
 ## AI jobs (after MVP)
 
-**MVP:** no external AI calls. Style it reads pre-generated try-on images from `public/demo/tryon/`, mapped to garment IDs in `lib/demo/tryon.ts`. Generate them once by hand with FASHN's web app or API before the demo.
+**MVP:** no external AI calls. Style it reads hand-picked looks from `lib/demo/tryon.ts` (keyed by garment ID) and pre-generated try-on images from `public/demo/tryon/NN-a.webp`; until an image exists it shows an outfit board of the garment photos. The images are made once before the demo with `pnpm tryon:generate` (`scripts/generate-tryon.ts`, FASHN `tryon-v1.6`, needs `FASHN_API_KEY` and `photos/tryon/model.jpg`; dry run unless `--yes`).
 
 After MVP, all external AI calls go through `ai_jobs`, so they're observable, cacheable and retryable.
 
@@ -201,25 +203,28 @@ After MVP, all external AI calls go through `ai_jobs`, so they're observable, ca
 
 Check FASHN's current docs for model names, input fields and the webhook format before implementing.
 
-### Photo pipeline (`lib/tagging/`)
+### Photo pipeline
 
-1. The original is uploaded to `garments/{closet}/{garment}/original.jpg`.
-2. **Background removal** produces `cutout.png`, which is used everywhere the garment is shown and as the FASHN input. Use FASHN's background-removal endpoint if it fits, otherwise any remover.
-3. **Tagging:** Claude (`claude-haiku-5-5`) gets the image and returns JSON validated by Zod: `{ category, color, seasons[], formality, name_suggestion }`. Results are only written to fields where `tags_source` isn't `user`.
+On `dev`, steps 1–2 run in `lib/garments/server.ts` inside `POST /api/garments/{id}/photo`, as the signed-in user (RLS on `garments` and on the bucket).
+
+1. The original, turned upright and at most 1600 px, is uploaded to `garments/{closet}/{garment}/original.jpg`.
+2. **Background removal** with FASHN's `background-remove` model (`lib/fashn/`, 1 credit per photo), then framed like the demo photos (`lib/photos/frame.ts`: trimmed, centered, 800 px transparent WebP) into `cutout.webp`, which is shown everywhere the garment is. `photo_path` becomes `/api/garments/{id}/photo?v=<ms>`.
+3. **Tagging** (*after MVP*, `lib/tagging/`): Claude (`claude-haiku-5-5`) gets the image and returns JSON validated by Zod: `{ category, color, seasons[], formality, name_suggestion }`. Results are only written to fields where `tags_source` isn't `user`.
 
 ## Hub ingest flow (`POST /api/hub/events`)
 
 1. Verify the bearer secret against `devices.secret_hash` to get the device and closet.
 2. Validate the body with Zod.
-3. For each event: resolve `hanger_id` by number, insert into `sensor_events` (skipping duplicate `seq`), update `hangers` current state, and run the wear engine for that hanger.
+3. For each event: resolve `hanger_id` by number, insert into `sensor_events` (skipping duplicate `seq`), update `hangers` current state (unless a newer state is already there), and run the wear engine's `stepHanger` for that hanger: open an absence, or close it, classify it and write or drop its wear.
 4. Update `devices.last_seen_at`.
-5. Realtime pushes the `hangers` and `absences` changes to the app.
+5. Realtime pushes the `hangers`, `absences` and `wears` changes to the app.
 
-All of this runs in one transaction per event, through a Postgres function (`ingest_hanger_event`) called with the service role. The route stays thin, and two near-simultaneous events can't race.
+The logic lives in `lib/hub/` (plain TypeScript on the service-role client) and `lib/wear-engine/step.ts`, which applies the same rules as `replayHanger`. There is no single transaction: the unique indexes on open absences (one per hanger), `wears.absence_id` and `sensor_events (hanger_id, seq)` turn a race between two near-simultaneous requests into a skipped duplicate instead of a double write.
 
 ## Seed data
 
-- `supabase/seed.sql`: a demo user (email + password), a closet (`wear_profile = demo`, with coordinates), one hub device with `HUB_DEV_SECRET`, 24 hangers, and 18 garments with hand-written tags and photos in `public/demo/` (matching the mockup). 6 hangers have no photo.
+- `supabase/seed.sql`: a demo user (email + password), a closet (`wear_profile = demo`, with coordinates), one hub device with `HUB_DEV_SECRET`, 24 hangers, and 18 garments with hand-written tags and photos at `public/demo/garments/NN.webp` (NN = hanger number). Hangers 19–24 have no photo. A photo file that doesn't exist yet falls back to the garment's silhouette.
+- `scripts/prepare-photos.ts` (`pnpm photos:prepare`): turns `photos/raw/NN.jpg` (gitignored, named by hanger number) into those WebP files. It removes the background locally with rembg (`scripts/remove-bg.py`, model `birefnet-general-lite`; needs Python and `pip install "rembg[cpu]"`), caches cutouts in `photos/cutouts/`, then trims, centers and pads each garment on an 800 px transparent square. No external API; this is a dev-time step, not part of the app. The garments don't follow the mockup's layout: the mockup is the visual spec, and screen content follows this seed.
 - `scripts/seed-history.ts`: generates about 3 months of plausible `sensor_events` and replays them, so stats look real. It includes:
   - a few clearly forgotten items (hangers 8, 12, 18 and 24),
   - one item that's often browsed but never worn (hanger 18),
