@@ -2,12 +2,15 @@ import type { z } from "zod";
 import {
   ErrorBody,
   FindHangerResponse,
+  GarmentPhotoResponse,
   GeneratePlanResponse,
   PlanLightsResponse,
   SwipeDecisionResponse,
   SwipeDeckResponse,
+  UpdateGarmentResponse,
   type GeneratePlanRequest,
   type SwipeDecisionRequest,
+  type UpdateGarmentRequest,
 } from "./index";
 
 /*
@@ -28,7 +31,8 @@ export class ApiError extends Error {
 async function call<S extends z.ZodType>(path: string, schema: S, init: RequestInit = {}): Promise<z.infer<S>> {
   const res = await fetch(path, {
     ...init,
-    headers: init.body ? { "Content-Type": "application/json", ...init.headers } : init.headers,
+    // JSON bodies are strings; FormData sets its own multipart boundary
+    headers: typeof init.body === "string" ? { "Content-Type": "application/json", ...init.headers } : init.headers,
   });
   const json: unknown = await res.json().catch(() => null);
   if (!res.ok) throw new ApiError(res.status, ErrorBody.safeParse(json).data?.error.code ?? "unknown");
@@ -58,4 +62,16 @@ export function generatePlan(request: { week_start: string; replace?: GeneratePl
 /** POST /api/plans/{id}/lights: that day's hangers glow purple */
 export function lightPlanDay(planId: string, day: string) {
   return call(`/api/plans/${planId}/lights`, PlanLightsResponse, { method: "POST", body: JSON.stringify({ day }) });
+}
+
+/** POST /api/garments/{id}/photo: uploads a photo; the server removes the background */
+export function uploadGarmentPhoto(garmentId: string, photo: Blob) {
+  const body = new FormData();
+  body.append("photo", photo, "photo.jpg");
+  return call(`/api/garments/${garmentId}/photo`, GarmentPhotoResponse, { method: "POST", body });
+}
+
+/** PATCH /api/garments/{id}: name and type, as the user typed them */
+export function updateGarment(garmentId: string, changes: UpdateGarmentRequest) {
+  return call(`/api/garments/${garmentId}`, UpdateGarmentResponse, { method: "PATCH", body: JSON.stringify(changes) });
 }

@@ -17,7 +17,7 @@ export function HangerTile({
   onSelect?: (hangerNumber: number) => void;
 }) {
   const waiting = isWaiting(item);
-  const known = item.name !== null || item.category !== null;
+  const known = item.name !== null || item.category !== null || item.photoPath !== null;
   const label = [
     `Hanger ${item.hangerNumber}`,
     item.name ?? "no photo yet",

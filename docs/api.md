@@ -170,12 +170,15 @@ All app endpoints act on the caller's closet. A user with several closets passes
 | `POST /api/hangers/{number}/find` | – | Queues `white/blink2` on that hanger. `202 { command_id }` |
 | `POST /api/hangers/{number}/assign` *(after MVP)* | `{ "garment_id": "uuid" }` or `{ "new_garment": { ... } }` | Re-pairs a hanger after an NFC tap. Ends the old assignment, starts a new one, blinks white |
 
-### Garments (after MVP)
+### Garments
+
+On branch `feat/camera` (after MVP): the photo and details endpoints below exist; the rest is still spec.
 
 | Method & path | Body | Does |
 | --- | --- | --- |
-| `PATCH /api/garments/{id}` | `{ name?, category?, color?, seasons?, formality?, price_cents? }` | Edit details; sets `tags_source = 'user'` for changed tags |
-| `POST /api/garments/{id}/photo` | `multipart/form-data` with `photo` | Stores the original, then starts background-removal and tagging jobs. `202 { jobs: [...] }` |
+| `PATCH /api/garments/{id}` | `{ name?, category? }` (at least one; name 1–60 chars, trimmed) | Edits details and sets `tags_source = 'user'`. `200 { id, name, category }`. After MVP: `color`, `seasons`, `formality`, `price_cents` too |
+| `POST /api/garments/{id}/photo` | `multipart/form-data` with `photo` (an image, ≤ 4 MB) | Stores the original, removes the background with FASHN (synchronous, a few seconds) and frames the cutout. `200 { photo_path }`. `400` when no garment is found in the photo, `502 upstream_error` when FASHN fails (the original stays saved). AI tagging comes later |
+| `GET /api/garments/{id}/photo` | – | `302` to a 1-hour signed URL of the cutout. `photo_path` points here (`/api/garments/{id}/photo?v=<ms>`), so `<img>` tags just work |
 | `POST /api/wears` | `{ garment_id, worn_on }` | Manual wear (folded clothes, corrections) |
 | `POST /api/outfits/{id}/confirm` | `{ correct: boolean, garment_ids?: [] }` | Confirms or corrects an inferred outfit |
 

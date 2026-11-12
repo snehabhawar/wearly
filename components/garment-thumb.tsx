@@ -41,6 +41,9 @@ export function GarmentThumb({
         fill
         sizes={sizes}
         className={cn("object-contain", className)}
+        // Photos taken in the app come from /api/garments/{id}/photo, which needs the sign-in
+        // cookie: the browser loads them directly, not through the image optimizer
+        unoptimized={garment.photoPath.startsWith("/api/")}
         onError={() => setFailedPhoto(garment.photoPath)}
       />
     );

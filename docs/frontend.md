@@ -122,7 +122,7 @@ Components marked † come after MVP.
 | `StyleScreen` | Style it | Try-on image (or outfit board) and look picker, plus Keep. MVP uses static images; the loading state ("Dressing you up…") and "Wear it Thursday" (needs plan editing) come after MVP |
 | `FindItButton` | Item, Closet | Calls `/api/hangers/{n}/find`, shows "blinking white" toast |
 | `HubStatus` † | sidebar | From `devices.last_seen_at` |
-| `PhotoCapture` † | `/h/[hanger]`, Item | `<input type="file" accept="image/*" capture="environment">` |
+| `PhotoCapture` | Item (`/h/[hanger]` later) | On branch `feat/camera`. `<input type="file" accept="image/*" capture="environment">`; shrinks the photo to 1600 px JPEG in the browser, uploads it, then shows `GarmentDetailsForm` (name + type). Photos from storage load unoptimized in `GarmentThumb` (the route needs the sign-in cookie) |
 
 Base primitives (Button, Sheet, Dialog, Toast, Tabs) come from shadcn/ui, restyled with the tokens.
 

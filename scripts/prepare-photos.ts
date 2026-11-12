@@ -15,18 +15,15 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import sharp from "sharp";
+import { frameCutout } from "../lib/photos/frame";
 
 const RAW_DIR = "photos/raw";
 const CUTOUT_DIR = "photos/cutouts";
 const OUT_DIR = "public/demo/garments";
 const MAX_HANGER = 24;
 
-const CANVAS = 800; // output is CANVAS x CANVAS
-const PADDING = 40; // empty margin around the garment, in px
-const ALPHA_CUTOFF = 24; // pixels at or below this alpha count as background when trimming
 const IMAGE_EXT = /\.(jpe?g|png|webp|tiff?)$/i;
 
 const args = process.argv.slice(2);
@@ -88,50 +85,14 @@ function removeBackgrounds(photos: Photo[]): void {
   }
 }
 
-/** The smallest box holding every pixel more opaque than ALPHA_CUTOFF, or null if none. */
-async function opaqueBox(file: string) {
-  const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  let left = info.width, top = info.height, right = -1, bottom = -1;
-  for (let y = 0; y < info.height; y++) {
-    for (let x = 0; x < info.width; x++) {
-      if (data[(y * info.width + x) * info.channels + 3] > ALPHA_CUTOFF) {
-        if (x < left) left = x;
-        if (x > right) right = x;
-        if (y < top) top = y;
-        if (y > bottom) bottom = y;
-      }
-    }
-  }
-  return right < 0 ? null : { left, top, width: right - left + 1, height: bottom - top + 1 };
-}
-
 async function frame(photo: Photo): Promise<void> {
-  const box = await opaqueBox(photo.cutout);
-  if (!box) {
+  const framed = await frameCutout(photo.cutout);
+  if (!framed) {
     console.warn(`  hanger ${photo.hanger}: nothing left after background removal; retake the photo on a plainer background.`);
     return;
   }
-  const inner = CANVAS - 2 * PADDING;
-  const garment = await sharp(photo.cutout)
-    .extract(box)
-    .resize(inner, inner, { fit: "inside" })
-    .png()
-    .toBuffer({ resolveWithObject: true });
-
-  const left = Math.floor((CANVAS - garment.info.width) / 2);
-  const top = Math.floor((CANVAS - garment.info.height) / 2);
-  await sharp(garment.data)
-    .extend({
-      left,
-      right: CANVAS - garment.info.width - left,
-      top,
-      bottom: CANVAS - garment.info.height - top,
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
-    .webp({ quality: 85, alphaQuality: 90 })
-    .toFile(photo.out);
-
-  const kb = Math.round(statSync(photo.out).size / 1024);
+  writeFileSync(photo.out, framed);
+  const kb = Math.round(framed.length / 1024);
   console.log(`  hanger ${photo.hanger}: ${photo.out} (${kb} KB)`);
 }
 

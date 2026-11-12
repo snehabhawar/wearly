@@ -91,11 +91,11 @@ Enabled on `hangers`, `absences`, `wears` and `commands` (plus `ai_jobs` after M
 
 ### Storage buckets
 
-*After MVP.* The MVP serves demo photos and try-on images as static files from `public/demo/`.
+*After MVP.* The MVP serves demo photos and try-on images as static files from `public/demo/`. On branch `feat/camera`, the `garments` bucket exists (migration `20261111120000_garment_photos`): private, with storage policies that let a user reach only folders of the closet they own (`owns_closet` on the first path segment).
 
 | Bucket | Contents | Access |
 | --- | --- | --- |
-| `garments` | Originals and background-removed cutouts: `{closet_id}/{garment_id}/original.jpg`, `cutout.png` | Private, signed URLs |
+| `garments` | Originals and background-removed cutouts: `{closet_id}/{garment_id}/original.jpg`, `cutout.webp` | Private, signed URLs |
 | `profiles` | Model photos for try-on | Private, owner only |
 | `tryon` | FASHN results copied out of FASHN's temporary URLs | Private, signed URLs |
 
@@ -203,11 +203,13 @@ After MVP, all external AI calls go through `ai_jobs`, so they're observable, ca
 
 Check FASHN's current docs for model names, input fields and the webhook format before implementing.
 
-### Photo pipeline (`lib/tagging/`)
+### Photo pipeline
 
-1. The original is uploaded to `garments/{closet}/{garment}/original.jpg`.
-2. **Background removal** produces `cutout.png`, which is used everywhere the garment is shown and as the FASHN input. Use FASHN's background-removal endpoint if it fits, otherwise any remover.
-3. **Tagging:** Claude (`claude-haiku-5-5`) gets the image and returns JSON validated by Zod: `{ category, color, seasons[], formality, name_suggestion }`. Results are only written to fields where `tags_source` isn't `user`.
+On branch `feat/camera`, steps 1–2 run in `lib/garments/server.ts` inside `POST /api/garments/{id}/photo`, as the signed-in user (RLS on `garments` and on the bucket).
+
+1. The original, turned upright and at most 1600 px, is uploaded to `garments/{closet}/{garment}/original.jpg`.
+2. **Background removal** with FASHN's `background-remove` model (`lib/fashn/`, 1 credit per photo), then framed like the demo photos (`lib/photos/frame.ts`: trimmed, centered, 800 px transparent WebP) into `cutout.webp`, which is shown everywhere the garment is. `photo_path` becomes `/api/garments/{id}/photo?v=<ms>`.
+3. **Tagging** (*after MVP*, `lib/tagging/`): Claude (`claude-haiku-5-5`) gets the image and returns JSON validated by Zod: `{ category, color, seasons[], formality, name_suggestion }`. Results are only written to fields where `tags_source` isn't `user`.
 
 ## Hub ingest flow (`POST /api/hub/events`)
 

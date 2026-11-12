@@ -108,7 +108,7 @@ export function ClosetView({ items, summary }: { items: ClosetItem[]; summary: C
 }
 
 function SelectedHanger({ item }: { item: ClosetItem }) {
-  const known = item.name !== null || item.category !== null;
+  const known = item.name !== null || item.category !== null || item.photoPath !== null;
   const waiting = isWaiting(item);
   const line = waiting
     ? item.lastWornOn
@@ -131,7 +131,12 @@ function SelectedHanger({ item }: { item: ClosetItem }) {
         ) : (
           <div className="flex flex-col items-center gap-2.5 px-6 text-center">
             <span className="font-heading text-[56px] leading-none font-bold text-plum">{item.hangerNumber}</span>
-            <span className="text-[13px] text-muted-strong">No photo yet. Tap the hanger with your phone to add one.</span>
+            <span className="text-[13px] text-muted-strong">No photo yet.</span>
+            {item.garmentId && (
+              <Link href={`/closet/${item.garmentId}`} className="text-sm font-semibold text-plum underline-offset-4 hover:underline">
+                Add a photo
+              </Link>
+            )}
           </div>
         )}
         <span className="absolute top-3 left-3 rounded-full bg-card px-2.5 py-1 text-xs font-bold text-plum">

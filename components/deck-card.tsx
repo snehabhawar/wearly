@@ -23,7 +23,7 @@ export function DeckCard({
   today: string | null;
   className?: string;
 }) {
-  const known = card.name !== null || card.category !== null;
+  const known = card.name !== null || card.category !== null || card.photo_path !== null;
   const hanger = card.hanger_number;
 
   return (
