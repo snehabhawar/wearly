@@ -8,13 +8,19 @@
  * chains calls: bottoms first, then tops, then outerwear, each on the previous result.
  * Garment photos: photos/raw/NN.* if present, else public/demo/garments/NN.webp.
  *
- * Usage: pnpm tryon:generate [18 | 18-a ...] [--force] [--yes]
+ * The final image is cropped to 3:4 around the person (found with rembg, as in
+ * prepare-photos), so the outfit fills the Style it frame.
+ *
+ * Usage: pnpm tryon:generate [18 | 18-a ...] [--force] [--yes] [--reframe]
  *   18 = every look of garment 18; 18-a = just that look.
  *   Without --yes it only prints the plan and the credits it would use (no API calls).
- * Needs: FASHN_API_KEY in .env.local, and a full-body photo at photos/tryon/model.jpg.
+ *   --reframe redoes only the crop from the saved FASHN result (free).
+ * Needs: FASHN_API_KEY in .env.local, a full-body photo at photos/tryon/model.jpg,
+ * and Python with rembg for the crop.
  * Docs (checked 2026-11-11): https://docs.fashn.ai/api-reference/tryon-v1-6
  */
 
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
@@ -24,8 +30,10 @@ const API = "https://api.fashn.ai/v1";
 const MODEL_PHOTO = "photos/tryon/model.jpg";
 const RAW_DIR = "photos/raw";
 const STEP_DIR = "photos/tryon/steps"; // every FASHN output, for checking a chain step by step
-// FASHN works at 864 x 1296 (2:3); keep the whole figure so the outfit shows head to toe
-const OUT = { width: 864, height: 1296 };
+// Output frame: 3:4, cropped around the person with a margin, head to toe
+const OUT = { width: 750, height: 1000 };
+const MARGIN = 0.06; // of the person's height, above and below
+const python = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
 const POLL_MS = 2000;
 const TIMEOUT_MS = 180_000;
 
@@ -36,6 +44,7 @@ const LAYER: Record<Category, number> = { bottom: 0, one_piece: 0, top: 1, outer
 const args = process.argv.slice(2);
 const force = args.includes("--force");
 const spend = args.includes("--yes");
+const reframeOnly = args.includes("--reframe");
 // "18" picks every look of garment 18, "18-a" one look
 const only = args.filter((a) => /^\d+(-[a-z])?$/.test(a)).map((a) => {
   const [n, look] = a.split("-");
@@ -105,6 +114,40 @@ function plan(garmentId: string, look: TryOnLook, garments: ReturnType<typeof se
   return pieces.sort((a, b) => LAYER[a.category] - LAYER[b.category]);
 }
 
+/** Where step `i` (1-based) of a look's chain is saved */
+const stepFile = (out: string, i: number) => path.join(STEP_DIR, `${path.basename(out, ".webp")}-${i}.png`);
+
+/** Crops a FASHN result to 3:4 around the person and writes the app's WebP */
+async function frame(src: string, out: string): Promise<void> {
+  const mask = src.replace(/\.png$/, ".mask.png");
+  const run = spawnSync(python, ["scripts/remove-bg.py", "birefnet-general-lite", src, mask], { stdio: "inherit" });
+  if (run.error || run.status !== 0) throw new Error(`Couldn't find the person in ${src}. Is rembg installed?`);
+
+  const { data, info } = await sharp(mask).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let top = info.height, bottom = -1, left = info.width, right = -1;
+  for (let y = 0; y < info.height; y++) {
+    for (let x = 0; x < info.width; x++) {
+      if (data[(y * info.width + x) * info.channels + 3] > 24) {
+        top = Math.min(top, y); bottom = Math.max(bottom, y);
+        left = Math.min(left, x); right = Math.max(right, x);
+      }
+    }
+  }
+  if (bottom < 0) throw new Error(`No person found in ${src}`);
+
+  const pad = Math.round((bottom - top) * MARGIN);
+  const height = Math.min(info.height, bottom - top + 2 * pad);
+  const width = Math.min(info.width, Math.round((height * OUT.width) / OUT.height));
+  const clamp = (v: number, max: number) => Math.max(0, Math.min(v, max));
+  const box = {
+    left: clamp(Math.round((left + right) / 2 - width / 2), info.width - width),
+    top: clamp(top - pad, info.height - height),
+    width,
+    height,
+  };
+  await sharp(src).extract(box).resize(OUT.width, OUT.height, { fit: "cover" }).webp({ quality: 82 }).toFile(out);
+}
+
 async function main() {
   const garments = seedGarments();
   const picked = (id: string, look: TryOnLook) =>
@@ -114,6 +157,19 @@ async function main() {
       .filter((look) => picked(id, look))
       .map((look) => ({ look, out: path.join("public", look.image), steps: plan(id, look, garments) })),
   );
+  if (reframeOnly) {
+    for (const j of jobs) {
+      const last = stepFile(j.out, j.steps.length);
+      if (!existsSync(last)) {
+        console.log(`${j.out}: no saved FASHN result (${last}), skipping`);
+        continue;
+      }
+      await frame(last, j.out);
+      console.log(`  -> ${j.out}`);
+    }
+    return;
+  }
+
   const todo = jobs.filter((j) => force || !existsSync(j.out));
   const credits = todo.reduce((sum, j) => sum + j.steps.length, 0);
 
@@ -141,15 +197,11 @@ async function main() {
     for (const [i, step] of j.steps.entries()) {
       process.stdout.write(`  ${path.basename(j.out)}: ${step.name}... `);
       result = await fashn(key, current, await dataUri(garmentPhoto(step.n)), FASHN_CATEGORY[step.category]);
-      const stepFile = path.join(STEP_DIR, `${path.basename(j.out, ".webp")}-${i + 1}.png`);
-      await sharp(result).toFile(stepFile);
+      await sharp(result).toFile(stepFile(j.out, i + 1));
       current = `data:image/png;base64,${result.toString("base64")}`;
       console.log("done");
     }
-    await sharp(result!)
-      .resize(OUT.width, OUT.height, { fit: "inside" })
-      .webp({ quality: 82 })
-      .toFile(j.out);
+    await frame(stepFile(j.out, j.steps.length), j.out);
     console.log(`  -> ${j.out}`);
   }
 }
