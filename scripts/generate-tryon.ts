@@ -28,8 +28,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import { looksFor, STYLED_GARMENTS, type TryOnLook } from "../lib/demo/tryon";
+import { tryOn } from "../lib/fashn";
 
-const API = "https://api.fashn.ai/v1";
 const MODEL_PHOTO = "photos/tryon/model.jpg";
 const RAW_DIR = "photos/raw";
 const STEP_DIR = "photos/tryon/steps"; // every FASHN output, for checking a chain step by step
@@ -37,8 +37,6 @@ const STEP_DIR = "photos/tryon/steps"; // every FASHN output, for checking a cha
 const OUT = { width: 750, height: 1000 };
 const MARGIN = 0.06; // of the person's height, above and below
 const python = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
-const POLL_MS = 2000;
-const TIMEOUT_MS = 180_000;
 
 type Category = "top" | "bottom" | "outer" | "one_piece";
 const FASHN_CATEGORY: Record<Category, string> = { top: "tops", bottom: "bottoms", outer: "tops", one_piece: "one-pieces" };
@@ -82,39 +80,6 @@ function garmentPhoto(n: number): string {
 async function dataUri(file: string): Promise<string> {
   const buf = await sharp(file).rotate().flatten({ background: "#ffffff" }).resize(864, 1296, { fit: "inside" }).jpeg({ quality: 90 }).toBuffer();
   return `data:image/jpeg;base64,${buf.toString("base64")}`;
-}
-
-async function fashn(key: string, modelImage: string, garmentImage: string, category: string): Promise<Buffer> {
-  const run = await fetch(`${API}/run`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model_name: "tryon-v1.6",
-      inputs: {
-        model_image: modelImage,
-        garment_image: garmentImage,
-        category,
-        mode: "quality",
-        output_format: "png",
-        ...(segment && { segmentation_free: false }),
-      },
-    }),
-  });
-  const started = (await run.json()) as { id?: string; error?: unknown };
-  if (!run.ok || !started.id) throw new Error(`FASHN run failed (${run.status}): ${JSON.stringify(started.error ?? started)}`);
-
-  const deadline = Date.now() + TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, POLL_MS));
-    const res = await fetch(`${API}/status/${started.id}`, { headers: { Authorization: `Bearer ${key}` } });
-    const s = (await res.json()) as { status: string; output?: string[]; error?: unknown };
-    if (s.status === "completed" && s.output?.[0]) {
-      // Output URLs expire after a few days: download right away
-      return Buffer.from(await (await fetch(s.output[0])).arrayBuffer());
-    }
-    if (s.status === "failed") throw new Error(`FASHN prediction failed: ${JSON.stringify(s.error)}`);
-  }
-  throw new Error(`FASHN prediction ${started.id} timed out`);
 }
 
 function plan(garmentId: string, look: TryOnLook, garments: ReturnType<typeof seedGarments>) {
@@ -226,7 +191,12 @@ async function main() {
     for (const [i, step] of j.steps.entries()) {
       if (i + 1 < start) continue;
       process.stdout.write(`  ${path.basename(j.out)}: ${step.name}... `);
-      const result = await fashn(key, current, await dataUri(garmentPhoto(step.n)), FASHN_CATEGORY[step.category]);
+      const result = await tryOn(key, {
+        model_image: current,
+        garment_image: await dataUri(garmentPhoto(step.n)),
+        category: FASHN_CATEGORY[step.category],
+        ...(segment && { segmentation_free: false }),
+      });
       await sharp(result).toFile(stepFile(j.out, i + 1));
       current = `data:image/png;base64,${result.toString("base64")}`;
       console.log("done");
