@@ -8,7 +8,8 @@
  * chains calls: bottoms first, then tops, then outerwear, each on the previous result.
  * Garment photos: photos/raw/NN.* if present, else public/demo/garments/NN.webp.
  *
- * Usage: pnpm tryon:generate [18 8 ...] [--force] [--yes]
+ * Usage: pnpm tryon:generate [18 | 18-a ...] [--force] [--yes]
+ *   18 = every look of garment 18; 18-a = just that look.
  *   Without --yes it only prints the plan and the credits it would use (no API calls).
  * Needs: FASHN_API_KEY in .env.local, and a full-body photo at photos/tryon/model.jpg.
  * Docs (checked 2026-11-11): https://docs.fashn.ai/api-reference/tryon-v1-6
@@ -35,7 +36,11 @@ const LAYER: Record<Category, number> = { bottom: 0, one_piece: 0, top: 1, outer
 const args = process.argv.slice(2);
 const force = args.includes("--force");
 const spend = args.includes("--yes");
-const only = args.filter((a) => /^\d+$/.test(a)).map(Number);
+// "18" picks every look of garment 18, "18-a" one look
+const only = args.filter((a) => /^\d+(-[a-z])?$/.test(a)).map((a) => {
+  const [n, look] = a.split("-");
+  return { garment: Number(n), look };
+});
 
 /** Seed number of a seeded garment ID (…0000000002NN) */
 const seedNumber = (garmentId: string) => Number(garmentId.slice(-2));
@@ -102,9 +107,12 @@ function plan(garmentId: string, look: TryOnLook, garments: ReturnType<typeof se
 
 async function main() {
   const garments = seedGarments();
-  const targets = STYLED_GARMENTS.filter((id) => only.length === 0 || only.includes(seedNumber(id)));
-  const jobs = targets.flatMap((id) =>
-    looksFor(id).map((look) => ({ look, out: path.join("public", look.image), steps: plan(id, look, garments) })),
+  const picked = (id: string, look: TryOnLook) =>
+    only.length === 0 || only.some((o) => o.garment === seedNumber(id) && (!o.look || o.look === look.id));
+  const jobs = STYLED_GARMENTS.flatMap((id) =>
+    looksFor(id)
+      .filter((look) => picked(id, look))
+      .map((look) => ({ look, out: path.join("public", look.image), steps: plan(id, look, garments) })),
   );
   const todo = jobs.filter((j) => force || !existsSync(j.out));
   const credits = todo.reduce((sum, j) => sum + j.steps.length, 0);
