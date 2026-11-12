@@ -2,7 +2,7 @@
 
 One Next.js app (App Router, TypeScript) serves the homepage, the app on phone and desktop, the NFC landing pages and the dev simulator. It ships as a **PWA**. Every screen is designed in the [Wearly App Mockup](https://claude.ai/artifact/E8aWsZqMko2VrhDzJ8jNUa), so use it as the visual spec.
 
-> Status: on `dev`: `/login`, Today, Closet (live, with Find it), item detail, Swipe, Plan, Style it and `/sim`. The homepage is still to build.
+> Status: on `dev`: `/login`, Today, Closet (live, with Find it), item detail, Swipe, Plan, Style it, the homepage and `/sim`. The MVP screens are all built.
 
 ## MVP scope
 
