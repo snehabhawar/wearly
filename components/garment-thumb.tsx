@@ -29,10 +29,11 @@ export function GarmentThumb({
   sizes?: string;
   className?: string;
 }) {
-  const [photoFailed, setPhotoFailed] = useState(false);
+  // Remember which photo failed, not just that one did: the same thumb is reused for other garments
+  const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
   const shape = garment ? silhouetteFor(garment.category, garment.name) : null;
 
-  if (garment?.photoPath && !photoFailed) {
+  if (garment?.photoPath && garment.photoPath !== failedPhoto) {
     return (
       <Image
         src={garment.photoPath}
@@ -40,7 +41,7 @@ export function GarmentThumb({
         fill
         sizes={sizes}
         className={cn("object-contain", className)}
-        onError={() => setPhotoFailed(true)}
+        onError={() => setFailedPhoto(garment.photoPath)}
       />
     );
   }

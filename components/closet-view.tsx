@@ -167,10 +167,16 @@ function SelectedHanger({ item }: { item: ClosetItem }) {
       </div>
       <div className="flex items-start gap-2.5">
         <FindItButton key={item.hangerNumber} hangerNumber={item.hangerNumber} className="flex-1" />
-        {/* Opens Style it once that screen exists */}
-        <Button disabled variant="secondary" className="h-11.5 flex-1 rounded-lg font-semibold">
-          Style it
-        </Button>
+        {item.garmentId && (
+          <Button
+            variant="secondary"
+            className="h-11.5 flex-1 rounded-lg font-semibold"
+            render={<Link href={`/style/${item.garmentId}`} />}
+            nativeButton={false}
+          >
+            Style it
+          </Button>
+        )}
       </div>
     </section>
   );
