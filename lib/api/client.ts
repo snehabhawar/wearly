@@ -66,10 +66,14 @@ export function lightPlanDay(planId: string, day: string) {
   return call(`/api/plans/${planId}/lights`, PlanLightsResponse, { method: "POST", body: JSON.stringify({ day }) });
 }
 
-/** POST /api/garments/{id}/photo: uploads a photo; the server removes the background */
-export function uploadGarmentPhoto(garmentId: string, photo: Blob) {
+/**
+ * POST /api/garments/{id}/photo: uploads a photo; the server removes the background and
+ * names the garment. `retag` re-identifies it even if the user typed its details.
+ */
+export function uploadGarmentPhoto(garmentId: string, photo: Blob, { retag = false }: { retag?: boolean } = {}) {
   const body = new FormData();
   body.append("photo", photo, "photo.jpg");
+  if (retag) body.append("retag", "1");
   return call(`/api/garments/${garmentId}/photo`, GarmentPhotoResponse, { method: "POST", body });
 }
 
