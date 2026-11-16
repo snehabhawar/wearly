@@ -32,10 +32,12 @@ type Day = { start: number; weekday: number; month: number }
 
 // Hanger -> weekly wear propensity (hangers 1-18 are photographed garments)
 const FAVORITES = [3, 4, 9, 10]        // heavy rotation
-const REGULAR   = [1, 2, 5, 11, 13, 14, 15, 17]
+const REGULAR   = [1, 2, 5, 11, 13, 15, 17]
 const RARE      = [6, 7, 16]           // seasonal / occasional
-const FORGOTTEN = [8, 12, 18, 24]      // zero wears in the window
-const BROWSE_ONLY = 18                 // often browsed, never worn
+const FORGOTTEN = [8, 12, 14, 18, 24]  // zero wears in the window
+// Often browsed, never worn. The black blazer (14) is the real hanger's garment (`pnpm demo:hanger`
+// puts it on hanger 1): browsed most, so it tops the Swipe deck; the silk blouse (18) comes next.
+const BROWSE_ONLY: [number, number][] = [[14, 0.45], [18, 0.3]] // [hanger, chance per day]
 const MYSTERY_LIVE = [19, 20, 21, 22, 23] // light activity only
 const DEMO_FRESH = [1, 2]              // keep recent days clear for demo steps
 
@@ -111,25 +113,27 @@ function build(ctx: Ctx): Session[] {
 
     // Tried-on-and-returned (real band: 20 min - 3 h)
     if (rnd() < 0.15) {
-      const h = pick([...REGULAR, ...RARE, 14])
+      const h = pick([...REGULAR, ...RARE])
       if (!(skipDemo && DEMO_FRESH.includes(h))) {
         const left = day.start + between(17, 21) * HOUR
         out.push({ hanger: h, leftAt: left, returnedAt: left + between(25, 140) * MIN })
       }
     }
 
-    // Hanger 18: browsed constantly, never worn. ~36 browses in 90 days, well above any
-    // hanger's share of the noise above, so it tops the Swipe deck for demo step 4.
-    if (rnd() < 0.4) {
-      const left = day.start + between(7, 21) * HOUR
-      out.push({ hanger: BROWSE_ONLY, leftAt: left, returnedAt: left + between(1, 15) * MIN })
+    // Browsed constantly, never worn: ~40 and ~27 browses in 90 days, well above any
+    // hanger's share of the noise above, so they top the Swipe deck for demo step 4
+    for (const [h, chance] of BROWSE_ONLY) {
+      if (rnd() < chance) {
+        const left = day.start + between(7, 21) * HOUR
+        out.push({ hanger: h, leftAt: left, returnedAt: left + between(1, 15) * MIN })
+      }
     }
   }
 
   // Occasional worn_washed: away 2-5 days (36h - 14d band)
   for (let i = 0; i < 4; i++) {
     const day = dayStart(Math.floor(between(10, 80)), ctx)
-    const h = pick([14, 13, 11, 17])
+    const h = pick([13, 11, 17])
     const left = day.start + 9 * HOUR
     out.push({ hanger: h, leftAt: left, returnedAt: left + between(2, 5) * DAY })
   }

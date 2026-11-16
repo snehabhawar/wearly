@@ -146,7 +146,7 @@ Then sign in with the seeded demo account (`demo@wearly.app`, see `supabase/seed
 - `/closet` to watch them arrive live
 - `/` for the homepage
 
-Other scripts: `pnpm test` (Vitest), `pnpm lint`, `pnpm build`, `pnpm db:push` (new migrations), `pnpm db:types` (regenerate `lib/supabase/types.ts`), `pnpm photos:prepare`, `pnpm tryon:generate`, `pnpm demo:hanger` (puts the black blazer on hanger 1, the real hanger; re-run after `db:reset`).
+Other scripts: `pnpm test` (Vitest), `pnpm lint`, `pnpm build`, `pnpm db:push` (new migrations), `pnpm db:types` (regenerate `lib/supabase/types.ts`), `pnpm photos:prepare`, `pnpm tryon:generate`, `pnpm demo:hanger` (puts the black blazer on hanger 1, the real hanger; run after `db:reset` + `seed:history`).
 
 > Free Supabase projects pause after 7 days of low activity. Open the dashboard the day before a demo.
 
@@ -202,4 +202,4 @@ Not started until the MVP is done. Roughly in priority order:
 1. Lift a shirt and put it straight back: the app shows **browsed**.
 2. Take a second shirt and leave it out (demo mode): a **wear** is logged live.
 3. Open Plan and tap "Light up tomorrow": tomorrow's hangers glow **blue**.
-4. Open Swipe: the burgundy blouse (hanger 18, browsed often, never worn) **breathes yellow**. Tap Style it, flip through its looks, and keep it: its light goes off and it joins next week's plan. On the next card, swipe left, pick donate, pull it off the rail, and the impact counter goes up.
+4. Open Swipe: the black blazer (on the real hanger after `pnpm demo:hanger`, browsed often, never worn) **breathes yellow**. Tap Style it, dress it in "Your mix", and keep it: its light goes off and it joins next week's plan. On the next card, swipe left, pick donate, pull it off the rail, and the impact counter goes up.
