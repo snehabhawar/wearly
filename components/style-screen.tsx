@@ -242,7 +242,9 @@ function MixPicker({
                       current === o.garmentId ? "border-2 border-plum" : "border-line",
                     )}
                   >
-                    <GarmentThumb garment={o} hangerNumber={o.hangerNumber} sizes="64px" className="size-full" />
+                    <span className="relative flex size-full items-center justify-center">
+                      <GarmentThumb garment={o} hangerNumber={o.hangerNumber} sizes="64px" className="size-full" />
+                    </span>
                   </button>
                 ))}
               </div>
