@@ -146,7 +146,7 @@ Then sign in with the seeded demo account (`demo@wearly.app`, see `supabase/seed
 - `/closet` to watch them arrive live
 - `/` for the homepage
 
-Other scripts: `pnpm test` (Vitest), `pnpm lint`, `pnpm build`, `pnpm db:push` (new migrations), `pnpm db:types` (regenerate `lib/supabase/types.ts`), `pnpm photos:prepare`, `pnpm tryon:generate`.
+Other scripts: `pnpm test` (Vitest), `pnpm lint`, `pnpm build`, `pnpm db:push` (new migrations), `pnpm db:types` (regenerate `lib/supabase/types.ts`), `pnpm photos:prepare`, `pnpm tryon:generate`, `pnpm demo:hanger` (puts the black blazer on hanger 1, the real hanger; re-run after `db:reset`).
 
 > Free Supabase projects pause after 7 days of low activity. Open the dashboard the day before a demo.
 
