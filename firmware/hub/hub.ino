@@ -8,7 +8,8 @@
 //   Anything not acked comes back on the next poll.
 // - When a hanger restarts, the hub sends it its last lasting light again.
 // - Serial Monitor (115200 baud, New Line): "5 1 0" sends a fake event for hanger 5
-//   (hanger, on_rail, garment_on); "list" shows the hangers the hub has heard from.
+//   (hanger, on_rail, garment_on); "list" shows the hangers the hub has heard from;
+//   "light 1 white" sends a light straight to hanger 1, without the app (for testing).
 //
 // Contract: docs/api.md, "Hub API". Board: ESP32 Dev Module. Library: ArduinoJson 7.
 // Before uploading: copy secrets.example.h to secrets.h and fill it in.
@@ -18,6 +19,7 @@
 #include <HTTPClient.h>
 #include <esp_now.h>
 #include <esp_wifi.h>
+#include <esp_mac.h>
 #include <esp_idf_version.h>
 #include <ArduinoJson.h>
 #include "protocol.h"
@@ -129,8 +131,14 @@ void setup() {
 
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
-  Serial.print("Hub MAC: ");
-  Serial.println(WiFi.macAddress());
+
+  // Read the MAC straight from the chip: WiFi.macAddress() can print all zeros
+  // this early with the ESP32 core 3.x. This is the address hangers send to.
+  uint8_t mac[6];
+  esp_read_mac(mac, ESP_MAC_WIFI_STA);
+  Serial.printf("Hub MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  Serial.printf("For the hanger's config.h: #define HUB_MAC {0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X}\n",
+                mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
   Serial.printf("Joining Wi-Fi \"%s\"", WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -152,6 +160,7 @@ void setup() {
   http.setTimeout(10000);        // the dev server can be slow the first time it builds a route
 
   Serial.println("Fake hanger event: <hanger> <on_rail 0/1> <garment_on 0/1>, e.g. 5 1 0. Type list to see hangers.");
+  Serial.println("Test a hanger's light without the app: light <hanger> <purple|amber|white|off>, e.g. light 1 white");
 }
 
 void loop() {
@@ -316,9 +325,33 @@ void handleLine(const String &line) {
     listHangers();
     return;
   }
+
+  // "light 1 white": send a light straight to a hanger, without the app (for testing)
+  if (line.startsWith("light")) {
+    int n = 0;
+    char color[16] = "";
+    int code = -1;
+    if (sscanf(line.c_str(), "light %d %15s", &n, color) == 2) code = lightCode(color);
+    if (code < 0) {
+      Serial.println("Type light <hanger> <purple|amber|white|off>, e.g. light 1 white");
+      return;
+    }
+    if (n < 1 || n > MAX_HANGER || !slots[n].heard) {
+      Serial.printf("LIGHT   hanger %d not heard yet: switch it on (or press its RST) first\n", n);
+      return;
+    }
+    bool ok = sendLight(n, code);
+    if (ok && code != LIGHT_WHITE) {  // remember lasting lights, like lights from the app
+      slots[n].hasLasting = true;
+      slots[n].lastingLight = code;
+    }
+    Serial.printf("LIGHT   hanger %d -> %s (typed): %s\n", n, color, ok ? "delivered" : "hanger didn't answer");
+    return;
+  }
+
   int hanger, onRail, garmentOn;
   if (sscanf(line.c_str(), "%d %d %d", &hanger, &onRail, &garmentOn) != 3 || hanger < 1) {
-    Serial.println("Type <hanger> <on_rail 0/1> <garment_on 0/1>, e.g. 5 1 0, or list");
+    Serial.println("Type <hanger> <on_rail 0/1> <garment_on 0/1>, e.g. 5 1 0, list, or light 1 white");
     return;
   }
   queueEvent(hanger, onRail == 1, garmentOn == 1, millis());

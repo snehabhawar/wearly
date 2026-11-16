@@ -9,24 +9,41 @@
 // - Serial Monitor commands (115200 baud, New Line): purple, amber, white, off, state,
 //   number <n>, channel, rescan, help.
 //
-// Board: ESP32C3 Dev Module, Tools > USB CDC On Boot: Enabled. Library: Adafruit NeoPixel.
+// Board: ESP32C3 Dev Module, Tools > USB CDC On Boot: Enabled.
+// Library: Adafruit NeoPixel (only needed for LIGHT_TYPE 1).
 // Before uploading: copy config.example.h to config.h and fill it in.
+
+// ---------- which light is fitted ----------
+// 1 = WS2812B LED board: DIN on GPIO 5
+// 2 = one 4-leg RGB LED, each color leg through its own resistor:
+//     red on GPIO 5, green on GPIO 7, blue on GPIO 10
+// 3 = three plain LEDs, each through its own resistor:
+//     purple (or blue) on GPIO 5, amber (or yellow/orange) on GPIO 7, white on GPIO 10
+#define LIGHT_TYPE 3
+
+// Only for LIGHT_TYPE 2: true if the RGB LED's long leg goes to 3V3 (common anode),
+// false if it goes to GND (common cathode)
+const bool RGB_COMMON_ANODE = false;
 
 #include <WiFi.h>
 #include <esp_now.h>
 #include <esp_wifi.h>
 #include <esp_idf_version.h>
 #include <Preferences.h>
+#if LIGHT_TYPE == 1
 #include <Adafruit_NeoPixel.h>
+#endif
 #include "protocol.h"
 #include "config.h"
 
 // ---------- settings ----------
 
-// Pins. Keep sensors off GPIO 2, 8 and 9: the C3 checks them at boot.
+// Pins. Keep everything off GPIO 2, 8 and 9: the C3 checks them at boot.
 const int PIN_REED = 3;     // reed switch between GPIO 3 and GND: LOW = on the rail
 const int PIN_GARMENT = 4;  // micro switch NO to GPIO 4, COM to GND: LOW = garment on
-const int PIN_LED = 5;      // WS2812B DIN
+const int PIN_LED = 5;      // WS2812B DIN, or the red leg / purple LED
+const int PIN_LED_2 = 7;    // green leg / amber LED (types 2 and 3 only)
+const int PIN_LED_3 = 10;   // blue leg / white LED (types 2 and 3 only)
 
 // Only if the micro switch can't feel your lightest shirt: use the TCRT5000 IR module
 // instead (D0 to GPIO 6, VCC to 3V3, GND to GND) and set this to true.
@@ -37,12 +54,15 @@ const unsigned long DEBOUNCE_MS = 200;
 const unsigned long HEARTBEAT_MS = 60000;   // "still here" message to the hub
 const unsigned long RETRY_MS = 2000;        // retry a state the hub didn't receive
 const unsigned long RESCAN_MS = 30000;      // at most this often, look for the hub's channel again
-const uint8_t BRIGHTNESS = 40;              // out of 255; low saves battery
+const uint8_t BRIGHTNESS = 40;              // WS2812B only, out of 255; low saves battery
+                                            // (plain LEDs are limited by their resistors)
 
 // ---------- state ----------
 
 const uint8_t hubMac[6] = HUB_MAC;
+#if LIGHT_TYPE == 1
 Adafruit_NeoPixel pixel(1, PIN_LED, NEO_GRB + NEO_KHZ800);
+#endif
 Preferences prefs;
 uint16_t myNumber = DEFAULT_HANGER_NUMBER;
 
@@ -54,7 +74,7 @@ unsigned long railChangedAt = 0, garmentChangedAt = 0;
 // Lights: purple, amber and off are lasting; white is momentary
 uint8_t lasting = LIGHT_OFF;
 unsigned long whiteStart = 0, whiteUntil = 0;  // white plays while millis() < whiteUntil
-uint32_t shownColor = 0xFFFFFFFF;              // what the LED shows now (forces the first update)
+uint32_t shownColor = 0xFFFFFFFF;              // what the LEDs show now (forces the first update)
 
 // Radio
 uint8_t radioChannel = 0;
@@ -89,7 +109,9 @@ const char* lightName(uint8_t code);
 void readSerial();
 void handleCommand(String cmd);
 void updateLight();
-void setColor(uint8_t r, uint8_t g, uint8_t b);
+void showOutput(uint8_t code, uint8_t level);
+void writeOutputs(uint8_t a, uint8_t b, uint8_t c);
+void testLights();
 
 // ---------- radio callbacks ----------
 
@@ -118,16 +140,19 @@ void onRadioSent(const uint8_t *mac, esp_now_send_status_t status) {
 // ---------- setup and loop ----------
 
 void setup() {
+  // Lights off first, so they don't glow while the board starts
+#if LIGHT_TYPE == 1
+  pixel.begin();
+  pixel.setBrightness(BRIGHTNESS);
+#endif
+  writeOutputs(0, 0, 0);
+
   Serial.begin(115200);
   delay(1000);  // give the Serial Monitor a moment to connect
 
   pinMode(PIN_REED, INPUT_PULLUP);
   pinMode(PIN_GARMENT, INPUT_PULLUP);
   pinMode(PIN_IR, INPUT);
-
-  pixel.begin();
-  pixel.setBrightness(BRIGHTNESS);
-  setColor(0, 0, 0);
 
   // The hanger number lives in flash, so renumbering needs no new upload
   prefs.begin("wearly", false);
@@ -138,10 +163,18 @@ void setup() {
 
   Serial.println();
   Serial.printf("Wearly hanger %d. Type help for commands.\n", myNumber);
-  Serial.printf("This hanger's MAC: %s\n", WiFi.macAddress().c_str());
+#if LIGHT_TYPE == 3
+  Serial.println("Light: 3 plain LEDs (GPIO 5 purple/blue, GPIO 7 amber/yellow, GPIO 10 white). Type test to check them.");
+#elif LIGHT_TYPE == 2
+  Serial.printf("Light: RGB LED on GPIO 5, 7, 10 (%s). Type test to check it.\n",
+                RGB_COMMON_ANODE ? "common anode" : "common cathode");
+#else
+  Serial.println("Light: WS2812B on GPIO 5. Type test to check it.");
+#endif
   printState();
 
   startRadio();
+  Serial.printf("This hanger's MAC: %s\n", WiFi.macAddress().c_str());  // only known once the radio is on
   queueState(KIND_BOOT);  // tells the hub we're here, so it re-sends our light
   lastHeartbeat = millis();
 }
@@ -363,29 +396,57 @@ void updateLight() {
     // Two short white blinks: on 150 ms, off 150 ms, on 150 ms, off 150 ms
     unsigned long t = now - whiteStart;
     bool on = t < 150 || (t >= 300 && t < 450);
-    uint8_t v = on ? 255 : 0;
-    setColor(v, v, v);
+    showOutput(LIGHT_WHITE, on ? 255 : 0);
     return;
   }
 
-  if (lasting == LIGHT_PURPLE) {
-    setColor(128, 0, 255);
-  } else if (lasting == LIGHT_AMBER) {
+  if (lasting == LIGHT_AMBER) {
     float phase = (now % 3000) / 3000.0f;           // one breath every 3 seconds
     float k = 0.5f - 0.5f * cosf(phase * 2 * PI);    // 0 -> 1 -> 0
-    setColor((uint8_t)(255 * k), (uint8_t)(120 * k), 0);
+    showOutput(LIGHT_AMBER, (uint8_t)(255 * k));
   } else {
-    setColor(0, 0, 0);
+    showOutput(lasting, 255);  // steady purple, or off
   }
 }
 
-// Only talks to the LED when the color actually changes
-void setColor(uint8_t r, uint8_t g, uint8_t b) {
-  uint32_t c = pixel.Color(r, g, b);
-  if (c == shownColor) return;
-  pixel.setPixelColor(0, c);
+// Shows one light at a level from 0 (dark) to 255 (full) on whichever LED is fitted
+void showOutput(uint8_t code, uint8_t level) {
+#if LIGHT_TYPE == 3
+  // One plain LED per light
+  writeOutputs(code == LIGHT_PURPLE ? level : 0,
+               code == LIGHT_AMBER ? level : 0,
+               code == LIGHT_WHITE ? level : 0);
+#else
+  // One LED that mixes red, green and blue
+  uint8_t r = 0, g = 0, b = 0;
+  if (code == LIGHT_PURPLE) {
+    r = level / 2;  // if purple looks pink on an RGB LED, try level / 4
+    b = level;
+  } else if (code == LIGHT_AMBER) {
+    r = level;
+    g = level * 120 / 255;
+  } else if (code == LIGHT_WHITE) {
+    r = g = b = level;
+  }
+  writeOutputs(r, g, b);
+#endif
+}
+
+// Only talks to the LEDs when something actually changes
+void writeOutputs(uint8_t a, uint8_t b, uint8_t c) {
+  uint32_t key = ((uint32_t)a << 16) | ((uint32_t)b << 8) | c;
+  if (key == shownColor) return;
+  shownColor = key;
+#if LIGHT_TYPE == 1
+  pixel.setPixelColor(0, pixel.Color(a, b, c));
   pixel.show();
-  shownColor = c;
+#else
+  // Plain LEDs dim by flickering faster than the eye can see (PWM)
+  bool invert = LIGHT_TYPE == 2 && RGB_COMMON_ANODE;  // common anode: LOW turns a color on
+  analogWrite(PIN_LED, invert ? 255 - a : a);
+  analogWrite(PIN_LED_2, invert ? 255 - b : b);
+  analogWrite(PIN_LED_3, invert ? 255 - c : c);
+#endif
 }
 
 // ---------- Serial Monitor commands ----------
@@ -406,14 +467,15 @@ void handleCommand(String cmd) {
   cmd.trim();
   cmd.toLowerCase();
 
-  if (cmd == "purple") {
-    showLight(LIGHT_PURPLE);
-  } else if (cmd == "amber") {
-    showLight(LIGHT_AMBER);
-  } else if (cmd == "white") {
-    showLight(LIGHT_WHITE);
-  } else if (cmd == "off") {
-    showLight(LIGHT_OFF);
+  if (cmd == "purple" || cmd == "amber" || cmd == "white" || cmd == "off") {
+    uint8_t code = cmd == "purple" ? LIGHT_PURPLE
+                 : cmd == "amber"  ? LIGHT_AMBER
+                 : cmd == "white"  ? LIGHT_WHITE
+                                   : LIGHT_OFF;
+    showLight(code);
+    Serial.printf("Light: %s\n", lightName(code));
+  } else if (cmd == "test") {
+    testLights();
   } else if (cmd == "state") {
     Serial.printf("hanger %d: ", myNumber);
     printState();
@@ -433,7 +495,26 @@ void handleCommand(String cmd) {
   } else if (cmd == "rescan") {
     setRadioChannel(findHubChannel());
   } else {
-    Serial.println("Commands: purple, amber, white, off (test the light), state,");
-    Serial.println("          number <n> (set this hanger's number), channel, rescan");
+    Serial.println("Commands: purple, amber, white, off (show a light), test (each LED for 1 s),");
+    Serial.println("          state, number <n> (set this hanger's number), channel, rescan");
   }
+}
+
+// Turns on each light output by itself for 1 second, so a wiring fault shows up
+// as one LED that stays dark. (The sensors pause for these 3 seconds.)
+void testLights() {
+#if LIGHT_TYPE == 3
+  const char *names[3] = {"GPIO 5: purple/blue LED", "GPIO 7: amber/yellow LED", "GPIO 10: white LED"};
+#elif LIGHT_TYPE == 2
+  const char *names[3] = {"GPIO 5: red", "GPIO 7: green", "GPIO 10: blue"};
+#else
+  const char *names[3] = {"red", "green", "blue"};
+#endif
+  for (int k = 0; k < 3; k++) {
+    Serial.printf("Test: %s on for 1 s\n", names[k]);
+    writeOutputs(k == 0 ? 255 : 0, k == 1 ? 255 : 0, k == 2 ? 255 : 0);
+    delay(1000);
+  }
+  writeOutputs(0, 0, 0);
+  Serial.println("Test done");
 }
