@@ -42,8 +42,15 @@ const bool RGB_COMMON_ANODE = false;
 const int PIN_REED = 3;     // reed switch between GPIO 3 and GND: LOW = on the rail
 const int PIN_GARMENT = 4;  // micro switch NO to GPIO 4, COM to GND: LOW = garment on
 const int PIN_LED = 5;      // WS2812B DIN, or the red leg / purple LED
-const int PIN_LED_2 = 7;    // green leg / amber LED (types 2 and 3 only)
-const int PIN_LED_3 = 10;   // blue leg / white LED (types 2 and 3 only)
+// A board wired differently sets LED_PIN_2 / LED_PIN_3 in its config.h instead of changing this file
+#ifndef LED_PIN_2
+#define LED_PIN_2 7
+#endif
+#ifndef LED_PIN_3
+#define LED_PIN_3 10
+#endif
+const int PIN_LED_2 = LED_PIN_2;  // green leg / amber LED (types 2 and 3 only)
+const int PIN_LED_3 = LED_PIN_3;  // blue leg / white LED (types 2 and 3 only)
 
 // Only if the micro switch can't feel your lightest shirt: use the TCRT5000 IR module
 // instead (D0 to GPIO 6, VCC to 3V3, GND to GND) and set this to true.

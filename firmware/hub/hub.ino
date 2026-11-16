@@ -99,6 +99,7 @@ void sendEvents();
 void pollCommands();
 void sendAck(JsonDocument &ack);
 void printError(const char *what, int code);
+void printNetworkHint();
 
 // ---------- radio callbacks (they run in the Wi-Fi task, so keep them short) ----------
 
@@ -155,8 +156,9 @@ void setup() {
   startRadio();
 
   tlsClient.setInsecure();       // demo only: skips the certificate check for https
+  tlsClient.setHandshakeTimeout(15);  // seconds: a TLS handshake on a phone hotspot can be slow
   http.setReuse(true);           // keep one connection open instead of a new one every second
-  http.setConnectTimeout(3000);
+  http.setConnectTimeout(15000); // https adds a TLS handshake on top of the connection
   http.setTimeout(10000);        // the dev server can be slow the first time it builds a route
 
   Serial.println("Fake hanger event: <hanger> <on_rail 0/1> <garment_on 0/1>, e.g. 5 1 0. Type list to see hangers.");
@@ -503,10 +505,41 @@ void sendAck(JsonDocument &ack) {
   http.end();
 }
 
+// Why a request got no answer at all: DNS, TLS or memory. Printed at most once a minute.
+void printNetworkHint() {
+  static unsigned long lastHint = 0;
+  if (lastHint != 0 && millis() - lastHint < 60000) return;
+  lastHint = millis();
+
+  String base = String(API_BASE);
+  int start = base.indexOf("://") + 3;
+  int end = base.indexOf(':', start);
+  if (end < 0) end = base.indexOf('/', start);
+  String host = end < 0 ? base.substring(start) : base.substring(start, end);
+
+  IPAddress ip;
+  if (WiFi.hostByName(host.c_str(), ip)) {
+    Serial.printf("        DNS: %s -> %s\n", host.c_str(), ip.toString().c_str());
+  } else {
+    Serial.printf("        DNS: can't find %s. Does this Wi-Fi have internet?\n", host.c_str());
+  }
+  if (base.startsWith("https")) {
+    char tlsError[100];
+    if (tlsClient.lastError(tlsError, sizeof(tlsError)) != 0) Serial.printf("        TLS: %s\n", tlsError);
+  }
+  Serial.printf("        Wi-Fi signal: %d dBm, free memory: %u bytes\n", WiFi.RSSI(), (unsigned)ESP.getFreeHeap());
+}
+
 void printError(const char *what, int code) {
   if (code < 0) {
-    // No HTTP answer at all: wrong address, server not running, or a firewall
+    // No HTTP answer at all: wrong address, server not running, no internet, or TLS failed
     Serial.printf("%s: no answer from %s (%s)\n", what, API_BASE, http.errorToString(code).c_str());
+    printNetworkHint();
+    // The kept-open connection is broken: close it, so the next request opens a fresh one
+    // instead of failing on the dead one again ("connection refused" over and over)
+    http.end();
+    tlsClient.stop();
+    plainClient.stop();
     return;
   }
   Serial.printf("%s: HTTP %d %s\n", what, code, http.getString().c_str());

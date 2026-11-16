@@ -17,3 +17,8 @@
 // The hanger number the first time a board starts. After that, type "number 8" in the
 // Serial Monitor to change it; the board saves it and keeps it after a restart.
 #define DEFAULT_HANGER_NUMBER 1
+
+// Optional: only if this board's amber and white LEDs sit on other pins than the usual
+// amber = GPIO 7, white = GPIO 10 (LIGHT_TYPE 3). E.g. with the two swapped:
+// #define LED_PIN_2 10   // amber/yellow LED
+// #define LED_PIN_3 7    // white LED
