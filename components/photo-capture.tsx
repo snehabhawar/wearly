@@ -6,11 +6,9 @@ import { GarmentDetailsForm } from "@/components/garment-details-form";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
 import type { ItemDetail } from "@/lib/queries/item";
+import { shrinkPhoto } from "@/lib/photos/shrink";
 import { useUploadGarmentPhoto } from "@/lib/queries/use-garment-photo";
 import { cn } from "@/lib/utils";
-
-/** Photos are shrunk on the phone before upload: quicker, and well under the server's limit */
-const MAX_SIDE_PX = 1600;
 
 /**
  * "Add a photo": opens the back camera on a phone (a file picker on desktop), uploads the
@@ -28,7 +26,7 @@ export function PhotoCapture({ item, className }: { item: ItemDetail; className?
     setAskDetails(false);
     let photo: Blob;
     try {
-      photo = await shrink(file);
+      photo = await shrinkPhoto(file);
     } catch {
       setShrinkFailed(true);
       return;
@@ -82,19 +80,5 @@ export function PhotoCapture({ item, className }: { item: ItemDetail; className?
       )}
       {askDetails && <GarmentDetailsForm item={item} onDone={() => setAskDetails(false)} />}
     </div>
-  );
-}
-
-/** Upright (EXIF), at most MAX_SIDE_PX on its long side, as JPEG */
-async function shrink(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-  const scale = Math.min(1, MAX_SIDE_PX / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))), "image/jpeg", 0.85),
   );
 }

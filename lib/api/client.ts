@@ -4,9 +4,11 @@ import {
   FindHangerResponse,
   GarmentPhotoResponse,
   GeneratePlanResponse,
+  ModelPhotoResponse,
   PlanLightsResponse,
   SwipeDecisionResponse,
   SwipeDeckResponse,
+  TryOnJob,
   UpdateGarmentResponse,
   type GeneratePlanRequest,
   type SwipeDecisionRequest,
@@ -74,4 +76,26 @@ export function uploadGarmentPhoto(garmentId: string, photo: Blob) {
 /** PATCH /api/garments/{id}: name and type, as the user typed them */
 export function updateGarment(garmentId: string, changes: UpdateGarmentRequest) {
   return call(`/api/garments/${garmentId}`, UpdateGarmentResponse, { method: "PATCH", body: JSON.stringify(changes) });
+}
+
+/** POST /api/tryon: dresses the model in these garments (or returns the same outfit made earlier) */
+export function startTryOn(garmentIds: string[]) {
+  return call("/api/tryon", TryOnJob, { method: "POST", body: JSON.stringify({ garment_ids: garmentIds }) });
+}
+
+/** GET /api/tryon/{id}: the job's status; polling it is what moves it along */
+export function getTryOn(jobId: string) {
+  return call(`/api/tryon/${jobId}`, TryOnJob, { cache: "no-store" });
+}
+
+/** POST /api/tryon/model-photo: the user's own full-body photo becomes the try-on model */
+export function uploadModelPhoto(photo: Blob) {
+  const body = new FormData();
+  body.append("photo", photo, "model.jpg");
+  return call("/api/tryon/model-photo", ModelPhotoResponse, { method: "POST", body });
+}
+
+/** DELETE /api/tryon/model-photo: back to the demo model */
+export function clearModelPhoto() {
+  return call("/api/tryon/model-photo", ModelPhotoResponse, { method: "DELETE" });
 }
