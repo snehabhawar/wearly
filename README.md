@@ -55,7 +55,7 @@ Each doc starts with an **MVP scope** section. Anything marked *after MVP* is th
 | Tests | Vitest (wear engine, planner) |
 | Hosting | Vercel + Supabase Cloud |
 | Phone app | PWA |
-| *After MVP* | FASHN live try-on, Claude (`claude-haiku-5-5`) photo tagging, pg_cron, Playwright, Capacitor if we need store apps |
+| *After MVP* | Claude (`claude-haiku-5-5`) photo tagging, pg_cron, Playwright, Capacitor if we need store apps |
 
 ### Two rules that keep the Capacitor option open
 
@@ -121,7 +121,8 @@ Copy `.env.example` to `.env.local` and fill in:
 | `NEXT_PUBLIC_APP_URL` | Absolute app URL |
 | `HUB_DEV_SECRET` | Secret of the seeded dev hub; the simulator sends it |
 | `WEAR_PROFILE` | `real` or `demo` (default for new closets; demo uses seconds) |
-| `FASHN_API_KEY` | Server only: background removal for in-app garment photos (1 credit each), and `pnpm tryon:generate` |
+| `FASHN_API_KEY` | Server only: background removal for garment photos and live try-on (1 credit per photo or garment), and `pnpm tryon:generate` |
+| `TRYON_DAILY_LIMIT` | New live try-ons per closet per 24 h (default 10); reused outfits are free |
 | `SIM_ENABLED` | `true` turns `/sim` on in production, for the closet owner only (always on in development) |
 
 After MVP: `CRON_SECRET`, `FASHN_WEBHOOK_SECRET`, `ANTHROPIC_API_KEY`.
@@ -175,7 +176,7 @@ The goal is the [demo script](#demo-script-what-the-mvp-must-support), on a phon
 
 **Milestone 3: demo-ready (week 3)**
 - [x] Today screen
-- [x] Style it, showing pre-generated try-on images
+- [x] Style it, showing pre-generated try-on images, plus live FASHN try-on ("Your mix")
 - [x] Short homepage: hero, how it works, the lights, link into the app
 - [ ] Deploy to Vercel, test on a phone over a hotspot
 - [ ] Connect the real hub when it's ready, then rehearse the demo script
@@ -186,7 +187,7 @@ Not started until the MVP is done. Roughly in priority order:
 
 1. **Photos:** upload from the phone, background removal, AI tagging with Claude (photo upload + FASHN background removal done on `dev`; AI tagging next)
 2. **NFC:** `/h/[hanger]` sticker pages, re-pairing a hanger, "tap, snap, done"
-3. **Live FASHN try-on:** model photo, job pipeline, webhook, caching
+3. **Live FASHN try-on:** done early (model photo, job pipeline driven by polling, caching, daily limit)
 4. **Full homepage** with waitlist
 5. **Smarter wear tracking:** outfit inference + "Looks like you wore…" confirm, manual wear logging, scheduled sweep (pg_cron), replay script
 6. **Smarter planning:** swap pieces, plan vs. actual, learning from skips, Google Calendar

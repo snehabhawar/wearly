@@ -19,9 +19,8 @@ The MVP covers the demo script and nothing more. Everything marked *after MVP* b
 - Seed data and 3 months of fake history
 
 **After MVP**
-- Shared closets (`closet_members`), `profiles`, `outfits`, `calendar_events`, `ai_jobs`
-- Storage buckets and the photo pipeline
-- Live FASHN try-on
+- Shared closets (`closet_members`), `profiles`, `outfits`, `calendar_events`
+- Built early: storage buckets, the photo pipeline (background removal), live FASHN try-on and `ai_jobs`
 - Outfit inference
 - pg_cron sweep and morning lights
 - Replay script
@@ -44,9 +43,9 @@ Migrations live in `supabase/migrations/`. Types are generated into `lib/supabas
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| `closets` | `id`, `owner_id`, `name`, `timezone`, `wear_profile` (`real` \| `demo`), `latitude`, `longitude`, `last_swept_at` | One per user. `timezone` decides local dates; the coordinates feed the forecast; `last_swept_at` throttles the closet-wide sweep |
+| `closets` | `id`, `owner_id`, `name`, `timezone`, `wear_profile` (`real` \| `demo`), `latitude`, `longitude`, `last_swept_at`, `model_photo_path` | One per user. `timezone` decides local dates; the coordinates feed the forecast; `last_swept_at` throttles the closet-wide sweep; `model_photo_path` is the user's try-on photo in the `tryon` bucket (null: the demo model) |
 | `closet_members` | `closet_id`, `user_id`, `role` (`owner` \| `member`) | *After MVP:* shared closets. RLS then switches from `owner_id` to membership |
-| `profiles` | `user_id`, `display_name`, `model_photo_path` | *After MVP:* model photo for live FASHN try-on |
+| `profiles` | `user_id`, `display_name` | *After MVP.* The try-on model photo lives on `closets.model_photo_path` for now (one closet per user) |
 | `devices` | `id`, `closet_id`, `kind` (`hub`), `name`, `secret_hash`, `last_seen_at` | Hub auth. Secrets stored hashed |
 | `hangers` | `id`, `closet_id`, `number`, `on_rail`, `garment_on`, `led_color`, `led_pattern`, `state_changed_at` | `unique (closet_id, number)`. Current state only; history is in `sensor_events` |
 | `garments` | `id`, `closet_id`, `name`, `category`, `color`, `seasons text[]`, `formality smallint (1–5)`, `price_cents`, `photo_path`, `cutout_path`, `tags_source` (`ai` \| `user`), `status` (`active` \| `let_go` \| `rehomed` \| `missing`) | All descriptive fields nullable. In the MVP, `photo_path` points to `public/demo/` and tags are hand-written in the seed |
@@ -71,7 +70,7 @@ Migrations live in `supabase/migrations/`. Types are generated into `lib/supabas
 | `plan_items` | `id`, `plan_id`, `day`, `slot` (`top` \| `bottom` \| `outer` \| `one_piece`), `garment_id`, `hanger_id`, `reason`, `status` (`planned` \| `worn` \| `swapped` \| `skipped`) | `hanger_id` without a photographed garment = mystery pick |
 | `swipe_decisions` | `id`, `garment_id`, `decision` (`keep` \| `let_go` \| `style`), `route` (`donate` \| `resell` \| `swap`), `challenge_until`, `decided_at` | |
 | `commands` | `id bigint identity`, `closet_id`, `hanger_id`, `color`, `pattern`, `reason`, `created_at`, `expires_at` (not null, default 5 minutes), `acked_at` | Light command queue for the hub. Plan lights set their own expiry (end of that local day). On ack, a trigger copies `color`/`pattern` into `hangers.led_color`/`led_pattern`, except momentary `white/blink2` |
-| `ai_jobs` | `id`, `closet_id`, `kind` (`tryon` \| `tagging` \| `bg_remove`), `provider`, `provider_job_id`, `status`, `input jsonb`, `output jsonb`, `output_path`, `cache_key`, `error`, `created_at`, `finished_at` | *After MVP:* one table for all external AI calls |
+| `ai_jobs` | `id`, `closet_id`, `kind` (`tryon` \| `tagging` \| `bg_remove`), `provider`, `provider_job_id`, `status`, `input jsonb`, `output jsonb`, `output_path`, `cache_key`, `error`, `created_at`, `finished_at` | One table for external AI calls; live try-on uses it (`input`: model + dressing steps, `output`: current step) |
 
 ### Views
 
@@ -87,17 +86,16 @@ Migrations live in `supabase/migrations/`. Types are generated into `lib/supabas
 
 ### Realtime
 
-Enabled on `hangers`, `absences`, `wears` and `commands` (plus `ai_jobs` after MVP). The app subscribes filtered by `closet_id`.
+Enabled on `hangers`, `absences`, `wears` and `commands`. `ai_jobs` isn't: the app polls try-on jobs, and polling is what moves them along. The app subscribes filtered by `closet_id`.
 
 ### Storage buckets
 
-*After MVP.* The MVP serves demo photos and try-on images as static files from `public/demo/`. On `dev`, the `garments` bucket exists (migration `20261111120000_garment_photos`): private, with storage policies that let a user reach only folders of the closet they own (`owns_closet` on the first path segment).
+Demo photos and the hand-picked try-on images are static files in `public/demo/`. The `garments` bucket (migration `20261111120000_garment_photos`) and the `tryon` bucket (`20261115120000_live_tryon`) are private, with storage policies that let a user reach only folders of the closet they own (`owns_closet` on the first path segment).
 
 | Bucket | Contents | Access |
 | --- | --- | --- |
 | `garments` | Originals and background-removed cutouts: `{closet_id}/{garment_id}/original.jpg`, `cutout.webp` | Private, signed URLs |
-| `profiles` | Model photos for try-on | Private, owner only |
-| `tryon` | FASHN results copied out of FASHN's temporary URLs | Private, signed URLs |
+| `tryon` | Try-on results copied out of FASHN's temporary URLs (`{closet_id}/{job_id}.webp`) and the user's model photo (`{closet_id}/model-<ms>.jpg`, a new name per photo) | Private, signed URLs |
 
 ## Wear engine (`lib/wear-engine/`)
 
@@ -186,22 +184,23 @@ Rule-based, pure TS with tests. Called from `POST /api/plans/generate` (and a Su
 
 **Photos:** in the MVP, a candidate with no photo shows its hanger number. The "tap the hanger, snap a photo" prompt comes after MVP.
 
-## AI jobs (after MVP)
+## AI jobs
 
-**MVP:** no external AI calls. Style it reads hand-picked looks from `lib/demo/tryon.ts` (keyed by garment ID) and pre-generated try-on images from `public/demo/tryon/NN-a.webp`; until an image exists it shows an outfit board of the garment photos. The images are made once before the demo with `pnpm tryon:generate` (`scripts/generate-tryon.ts`, FASHN `tryon-v1.6`, needs `FASHN_API_KEY` and `photos/tryon/model.jpg`; dry run unless `--yes`).
+**Static looks:** Style it reads hand-picked looks from `lib/demo/tryon.ts` (keyed by garment ID) and pre-generated try-on images from `public/demo/tryon/NN-a.webp`; until an image exists it shows an outfit board of the garment photos. The images are made once before the demo with `pnpm tryon:generate` (`scripts/generate-tryon.ts`, FASHN `tryon-v1.6`, needs `FASHN_API_KEY` and `photos/tryon/model.jpg`; dry run unless `--yes`).
 
-After MVP, all external AI calls go through `ai_jobs`, so they're observable, cacheable and retryable.
+Live try-ons go through `ai_jobs` (migration `20261115120000_live_tryon`), so they're observable and cacheable. Background removal for photos still runs inside its request without a job row.
 
-### FASHN try-on (`lib/fashn/`)
+### FASHN try-on (`lib/tryon/`, `lib/fashn/`)
 
-1. `POST /api/tryon` builds a `cache_key` from the model photo hash and the sorted garment IDs. A finished job with the same key is returned immediately.
-2. Otherwise it submits to FASHN with the model photo and the first garment's cutout (signed URLs), and stores `provider_job_id`.
-3. Results come back through the FASHN webhook, or through polling FASHN's status endpoint as a fallback.
-4. FASHN output URLs are temporary, so results are copied into the `tryon` bucket.
-5. Multi-garment outfits are chained: try on the top, then use that result as the model image for the bottom or outer layer.
-6. For the live demo, pre-generate the demo outfits so nothing waits on the API.
+Built early (after-MVP scope). Runs as the signed-in user, under RLS.
 
-Check FASHN's current docs for model names, input fields and the webhook format before implementing.
+1. **Outfit rules** (`lib/tryon/outfit.ts`, shared with the UI): one garment per category, no top or bottom with a one-piece, at most 3 pieces. Pieces are dressed bottoms → tops → outerwear. Style it suggests pairings per slot: active, photographed garments of that category, pieces from the hand-picked looks first, then the most worn.
+2. **Cache:** `POST /api/tryon` hashes the model photo path (`demo` or the user's `closets.model_photo_path`) and each garment's `id:photo_path` into `cache_key`. A done job with that key, or one still running, is returned instead of paying again.
+3. **Daily limit:** at most `TRYON_DAILY_LIMIT` (default 10) new jobs per closet per 24 h.
+4. **Chain without background work:** the route inserts a `running` job and starts FASHN `tryon-v1.6` on the first garment (images sent as JPEG data URIs at 864×1296: the model photo, and each garment's cutout from storage or its demo file). Each `GET /api/tryon/{id}` checks that prediction; once it's done, the poll claims the step (a conditional update on `provider_job_id`, so two polls never start the same step twice) and starts the next garment on FASHN's output URL. After the last garment the image is downloaded, stored as WebP in the `tryon` bucket and the job is `done`. A job older than 10 minutes fails.
+5. **Costs:** 1 credit per garment (2–3 per outfit, about $0.075 each).
+
+FASHN docs (checked 2026-11-15): https://docs.fashn.ai. Webhooks aren't used: the app's own polling drives the chain.
 
 ### Photo pipeline
 

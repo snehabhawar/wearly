@@ -83,6 +83,69 @@ export type Database = {
           },
         ]
       }
+      ai_jobs: {
+        Row: {
+          cache_key: string | null
+          closet_id: string
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          input: Json
+          kind: string
+          output: Json
+          output_path: string | null
+          provider: string
+          provider_job_id: string | null
+          status: string
+        }
+        Insert: {
+          cache_key?: string | null
+          closet_id: string
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          input?: Json
+          kind: string
+          output?: Json
+          output_path?: string | null
+          provider?: string
+          provider_job_id?: string | null
+          status?: string
+        }
+        Update: {
+          cache_key?: string | null
+          closet_id?: string
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          input?: Json
+          kind?: string
+          output?: Json
+          output_path?: string | null
+          provider?: string
+          provider_job_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_jobs_closet_id_fkey"
+            columns: ["closet_id"]
+            isOneToOne: false
+            referencedRelation: "closet_summary"
+            referencedColumns: ["closet_id"]
+          },
+          {
+            foreignKeyName: "ai_jobs_closet_id_fkey"
+            columns: ["closet_id"]
+            isOneToOne: false
+            referencedRelation: "closets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       closets: {
         Row: {
           created_at: string
@@ -90,6 +153,7 @@ export type Database = {
           last_swept_at: string | null
           latitude: number | null
           longitude: number | null
+          model_photo_path: string | null
           name: string
           owner_id: string
           timezone: string
@@ -101,6 +165,7 @@ export type Database = {
           last_swept_at?: string | null
           latitude?: number | null
           longitude?: number | null
+          model_photo_path?: string | null
           name?: string
           owner_id: string
           timezone?: string
@@ -112,6 +177,7 @@ export type Database = {
           last_swept_at?: string | null
           latitude?: number | null
           longitude?: number | null
+          model_photo_path?: string | null
           name?: string
           owner_id?: string
           timezone?: string

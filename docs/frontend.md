@@ -12,7 +12,7 @@ One Next.js app (App Router, TypeScript) serves the homepage, the app on phone a
   - Closet + item detail with Find it
   - Plan: phone week view with "Light up tomorrow"
   - Swipe, with the let-go sheet
-  - Style it, showing pre-generated images
+  - Style it, showing pre-generated images (live FASHN try-on built early)
 - `/sim`
 - A short homepage: hero, how it works, the lights, link into the app
 - `/login` with the seeded demo account
@@ -38,7 +38,7 @@ One Next.js app (App Router, TypeScript) serves the homepage, the app on phone a
 | `/closet/[garmentId]` | Item detail | Item detail | Full page |
 | `/plan` | Week plan | Plan | Day strip + one day on phone, 7 columns on desktop |
 | `/swipe` | Keep or let go | Swipe | |
-| `/style/[garmentId]` | Style it (try-on) | Style it | MVP: looks and pre-generated images from `lib/demo/tryon.ts` (`public/demo/tryon/NN-a.webp`); until an image exists it shows an outfit board of the garment photos. `?from=swipe` sets the back link. Keep records the same decision as the deck. Live FASHN after MVP |
+| `/style/[garmentId]` | Style it (try-on) | Style it | Hand-picked looks and pre-generated images from `lib/demo/tryon.ts` (`public/demo/tryon/NN-a.webp`; outfit board until an image exists). "Your mix" pairs the garment with suggested pieces per slot and dresses the model live (`POST /api/tryon`, polled). With the user's own model photo, every look is made live. `?from=swipe` sets the back link. Keep records the same decision as the deck |
 | `/h/[hanger]` | NFC landing | – | *After MVP.* URL written on each sticker. Blinks the hanger white, opens its item, and offers the camera if there's no photo |
 | `/sim` | Hub simulator | Hub simulator | **Dev only**, hidden in production unless `SIM_ENABLED=true` (then signed-in owner only). Sends real events through the hub API |
 
@@ -119,7 +119,7 @@ Components marked † come after MVP.
 | `LightUpButton` | Plan | "Light up tomorrow": calls `/api/plans/{id}/lights` |
 | `SwipeDeck` | Swipe, Today (desktop) | Motion drag gestures plus Keep / Style it / Let go buttons (buttons are the accessible path) |
 | `LetGoSheet` | Swipe | Donate / Resell / Swap |
-| `StyleScreen` | Style it | Try-on image (or outfit board) and look picker, plus Keep. MVP uses static images; the loading state ("Dressing you up…") and "Wear it Thursday" (needs plan editing) come after MVP |
+| `StyleScreen` | Style it | Try-on image (or outfit board) and look picker with "Your mix" (piece picker per slot, Try it on with step progress), the model choice (demo model or "Use my photo"), plus Keep. "Wear it Thursday" (needs plan editing) comes after MVP |
 | `FindItButton` | Item, Closet | Calls `/api/hangers/{n}/find`, shows "blinking white" toast |
 | `HubStatus` † | sidebar | From `devices.last_seen_at` |
 | `PhotoCapture` | Item (`/h/[hanger]` later) | `<input type="file" accept="image/*" capture="environment">`; shrinks the photo to 1600 px JPEG in the browser, uploads it, then shows `GarmentDetailsForm` (name + type). Photos from storage load unoptimized in `GarmentThumb` (the route needs the sign-in cookie) |

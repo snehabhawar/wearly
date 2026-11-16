@@ -204,16 +204,20 @@ The deck is an endpoint, not a plain read, because it calls the seasonal-idle lo
 - **`SwipeCard`:** `garment_id`, `hanger_number` (nullable), `name` (nullable: no photo or tags yet), `photo_path` (nullable), `category` (nullable), `idle_days_in_season`, `browsed_count`, `wears_90d`, `waiting_since` (`YYYY-MM-DD`: last wear, or when the garment was added; for copy like "waiting since March"), `price_cents` (nullable).
 - **`Listing`:** `{ title, body, price_min_cents, price_max_cents }`.
 
-### Try-on (FASHN, after MVP)
+### Try-on (FASHN, live)
 
-In the MVP, Style it shows pre-generated static images and calls no endpoint.
+Built early (after-MVP scope). Hand-picked looks still show their pre-generated images on the demo model; "Your mix", and every look once the user has their own model photo, is dressed live.
 
 | Method & path | Body | Does |
 | --- | --- | --- |
-| `POST /api/tryon` | `{ garment_ids: ["uuid", ...] }` | Creates (or reuses from cache) a try-on job on the user's model photo. `202 { job_id, status }` |
-| `GET /api/tryon/{job_id}` | – | `{ status: "queued" \| "running" \| "done" \| "failed", image_url? }`. `image_url` is a signed Supabase Storage URL |
+| `POST /api/tryon` | `{ garment_ids: ["uuid", ...] }` (1–3: the styled garment plus what it's paired with) | Dresses the model (the user's photo, else the demo model) in these garments, one FASHN call each. The same outfit on the same photos is reused: `200 TryOnJob`. Otherwise `202 TryOnJob`. `400` for an outfit that can't be dressed (two tops, a top with a dress, a garment without a photo or type), `429 rate_limited` past the daily limit (`TRYON_DAILY_LIMIT`, default 10 new try-ons per closet per 24 h), `502` when FASHN won't start |
+| `GET /api/tryon/{id}` | – | `200 TryOnJob`. Polling moves the job along: each call checks the current FASHN prediction and, once it's done, starts the next garment or stores the final image. The app polls every 2 s |
+| `GET /api/tryon/{id}/image` | – | `302` to a 1-hour signed URL of the finished image (`tryon` bucket) |
+| `GET /api/tryon/model-photo` | – | `302` to the user's model photo, or `404` when try-ons use the demo model |
+| `POST /api/tryon/model-photo` | `multipart/form-data` with `photo` (≤ 4 MB) | A full-body photo of the user becomes the try-on model. `200 { model_photo: true }` |
+| `DELETE /api/tryon/model-photo` | – | Back to the demo model. `200 { model_photo: false }` |
 
-The client can poll this endpoint, or subscribe to the `ai_jobs` row through Realtime.
+- **`TryOnJob`:** `job_id`, `status` (`queued` \| `running` \| `done` \| `failed`), `step` (garment being dressed, 1-based), `steps`, `image_url` (`/api/tryon/{id}/image` when done, else null), `error` (a sentence for the user, or null).
 
 ---
 
