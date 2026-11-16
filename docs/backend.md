@@ -204,11 +204,11 @@ FASHN docs (checked 2026-11-15): https://docs.fashn.ai. Webhooks aren't used: th
 
 ### Photo pipeline
 
-On `dev`, steps 1–2 run in `lib/garments/server.ts` inside `POST /api/garments/{id}/photo`, as the signed-in user (RLS on `garments` and on the bucket).
+All three steps run in `lib/garments/server.ts` inside `POST /api/garments/{id}/photo`, as the signed-in user (RLS on `garments` and on the bucket). Photos come from the item page (`PhotoCapture`) or the closet camera (`/cam`), which snaps a garment when it's hung back.
 
 1. The original, turned upright and at most 1600 px, is uploaded to `garments/{closet}/{garment}/original.jpg`.
 2. **Background removal** with FASHN's `background-remove` model (`lib/fashn/`, 1 credit per photo), then framed like the demo photos (`lib/photos/frame.ts`: trimmed, centered, 800 px transparent WebP) into `cutout.webp`, which is shown everywhere the garment is. `photo_path` becomes `/api/garments/{id}/photo?v=<ms>`.
-3. **Tagging** (*after MVP*, `lib/tagging/`): Claude (`claude-haiku-5-5`) gets the image and returns JSON validated by Zod: `{ category, color, seasons[], formality, name_suggestion }`. Results are only written to fields where `tags_source` isn't `user`.
+3. **Tagging** (`lib/tagging/`, built early): Claude (`claude-haiku-5-5`, effort `low`, structured output with a Zod schema) gets the framed cutout and returns `{ is_garment, name, category, color, seasons[], formality }`; `color` is one of the colors the app can draw. Not a garment, a refusal or an error means no tags; the photo is saved anyway. Tags are written (`tags_source = 'ai'`) unless `tags_source` is `user`, or always with `retag`. Needs `ANTHROPIC_API_KEY`; without it photos are saved untagged.
 
 ## Hub ingest flow (`POST /api/hub/events`)
 

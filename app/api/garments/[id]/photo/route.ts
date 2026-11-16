@@ -1,3 +1,4 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { cookies } from "next/headers";
 import { Id, MAX_PHOTO_BYTES, type GarmentPhotoResponse } from "@/lib/api";
 import { saveGarmentPhoto, signedPhotoUrl } from "@/lib/garments/server";
@@ -5,7 +6,7 @@ import { errorResponse, handle } from "@/lib/http";
 import { getCurrentCloset } from "@/lib/supabase/closet";
 import { createServerSupabase } from "@/lib/supabase/server";
 
-// Background removal runs inside the request (a few seconds)
+// Background removal and tagging run inside the request (a few seconds)
 export const maxDuration = 30;
 
 // docs/api.md, Garments: the garment's photo, as a redirect to a short-lived signed URL
@@ -41,7 +42,11 @@ export async function POST(request: Request, ctx: RouteContext<"/api/garments/[i
     const key = process.env.FASHN_API_KEY;
     if (!key) return errorResponse("upstream_error", "Photo cutouts aren't set up on this server (FASHN_API_KEY)");
 
-    const result = await saveGarmentPhoto(user, id.data, Buffer.from(await photo.arrayBuffer()), key, new Date());
+    const result = await saveGarmentPhoto(user, id.data, Buffer.from(await photo.arrayBuffer()), key, new Date(), {
+      // Tagging is optional: without a key the photo is still saved, just not named
+      anthropic: process.env.ANTHROPIC_API_KEY ? new Anthropic() : null,
+      retag: form?.get("retag") === "1",
+    });
     if (!result.ok) {
       if (result.reason === "not_found") return errorResponse("not_found", "That garment isn't in your closet");
       if (result.reason === "no_garment_found") {
@@ -49,7 +54,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/garments/[i
       }
       return errorResponse("upstream_error", "We couldn't cut out the background just now. Your photo is saved; try again in a moment.");
     }
-    const body: GarmentPhotoResponse = { photo_path: result.photoPath };
+    const body: GarmentPhotoResponse = { photo_path: result.photoPath, tagged: result.tagged };
     return Response.json(body);
   });
 }

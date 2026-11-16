@@ -177,7 +177,7 @@ On `dev` (built early, after-MVP scope): the photo and details endpoints below e
 | Method & path | Body | Does |
 | --- | --- | --- |
 | `PATCH /api/garments/{id}` | `{ name?, category? }` (at least one; name 1–60 chars, trimmed) | Edits details and sets `tags_source = 'user'`. `200 { id, name, category }`. After MVP: `color`, `seasons`, `formality`, `price_cents` too |
-| `POST /api/garments/{id}/photo` | `multipart/form-data` with `photo` (an image, ≤ 4 MB) | Stores the original, removes the background with FASHN (synchronous, a few seconds) and frames the cutout. `200 { photo_path }`. `400` when no garment is found in the photo, `502 upstream_error` when FASHN fails (the original stays saved). AI tagging comes later |
+| `POST /api/garments/{id}/photo` | `multipart/form-data` with `photo` (an image, ≤ 4 MB) and optional `retag=1` | Stores the original, removes the background with FASHN and frames the cutout, then Claude names it (synchronous, a few seconds). Tags are written only when the user hasn't typed the details, unless `retag=1` (the closet camera's "every time" mode). `200 { photo_path, tagged: { name, category } \| null }`. `400` when no garment is found in the photo, `502 upstream_error` when FASHN fails (the original stays saved). Tagging failures never fail the photo |
 | `GET /api/garments/{id}/photo` | – | `302` to a 1-hour signed URL of the cutout. `photo_path` points here (`/api/garments/{id}/photo?v=<ms>`), so `<img>` tags just work |
 | `POST /api/wears` | `{ garment_id, worn_on }` | Manual wear (folded clothes, corrections) |
 | `POST /api/outfits/{id}/confirm` | `{ correct: boolean, garment_ids?: [] }` | Confirms or corrects an inferred outfit |

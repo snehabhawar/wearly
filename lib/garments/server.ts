@@ -1,8 +1,10 @@
+import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import sharp from "sharp";
-import type { UpdateGarmentRequest } from "@/lib/api";
+import type { GarmentCategory, UpdateGarmentRequest } from "@/lib/api";
 import { removeBackground } from "@/lib/fashn";
 import { frameCutout } from "@/lib/photos/frame";
+import { tagGarment, tagUpdate } from "@/lib/tagging";
 import type { Database } from "@/lib/supabase/types";
 
 type Db = SupabaseClient<Database>;
@@ -24,13 +26,20 @@ export const photoPaths = (closetId: string, garmentId: string) => ({
 export const photoUrl = (garmentId: string, version: number) => `/api/garments/${garmentId}/photo?v=${version}`;
 
 export type SavePhotoResult =
-  | { ok: true; photoPath: string }
+  | { ok: true; photoPath: string; tagged: { name: string | null; category: GarmentCategory } | null }
   | { ok: false; reason: "not_found" | "no_garment_found" | "cutout_failed" };
+
+export type PhotoOptions = {
+  /** Names the garment from the cutout (lib/tagging); skipped when absent */
+  anthropic?: Anthropic | null;
+  /** Re-identify even if the user typed its details (the closet camera's "every time" mode) */
+  retag?: boolean;
+};
 
 /**
  * POST /api/garments/{id}/photo: keeps the original, removes the background with FASHN,
- * frames the cutout like every other garment and points photo_path at it.
- * Runs as the signed-in user: RLS on garments and on the storage bucket scopes everything.
+ * frames the cutout like every other garment and points photo_path at it, then lets
+ * Claude name it. Runs as the signed-in user: RLS on garments and on the bucket scopes everything.
  */
 export async function saveGarmentPhoto(
   user: Db,
@@ -38,8 +47,13 @@ export async function saveGarmentPhoto(
   photo: Buffer,
   fashnKey: string,
   now: Date,
+  { anthropic = null, retag = false }: PhotoOptions = {},
 ): Promise<SavePhotoResult> {
-  const { data: garment, error } = await user.from("garments").select("id, closet_id").eq("id", garmentId).maybeSingle();
+  const { data: garment, error } = await user
+    .from("garments")
+    .select("id, closet_id, name, category, tags_source")
+    .eq("id", garmentId)
+    .maybeSingle();
   if (error) throw error;
   if (!garment) return { ok: false, reason: "not_found" };
 
@@ -63,13 +77,25 @@ export async function saveGarmentPhoto(
   if (!framed) return { ok: false, reason: "no_garment_found" };
   await upload(user, paths.cutout, framed, "image/webp");
 
+  // Tagging is a bonus: the photo is saved whether or not Claude can name it
+  let tags: ReturnType<typeof tagUpdate> = null;
+  if (anthropic) {
+    try {
+      const flat = await sharp(framed).flatten({ background: "#ffffff" }).jpeg({ quality: 88 }).toBuffer();
+      const found = await tagGarment(anthropic, flat);
+      tags = found && tagUpdate(garment, found, retag);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   const photoPath = photoUrl(garment.id, now.getTime());
   const { error: updateError } = await user
     .from("garments")
-    .update({ photo_path: photoPath, cutout_path: paths.cutout })
+    .update({ photo_path: photoPath, cutout_path: paths.cutout, ...tags })
     .eq("id", garment.id);
   if (updateError) throw updateError;
-  return { ok: true, photoPath };
+  return { ok: true, photoPath, tagged: tags && { name: tags.name, category: tags.category } };
 }
 
 /** GET /api/garments/{id}/photo: a short-lived signed URL for the cutout, or null */

@@ -71,6 +71,7 @@ app/
   (marketing)/page.tsx        homepage (short MVP version)
   (app)/today | closet | closet/[garmentId] | plan | swipe | style/[garmentId]
   h/[hanger]/                 † NFC landing page
+  cam/                        closet camera: a phone in the closet snaps garments when hung back
   sim/                        virtual hub simulator (404 in production unless SIM_ENABLED)
   login/
   api/
@@ -125,7 +126,9 @@ Copy `.env.example` to `.env.local` and fill in:
 | `TRYON_DAILY_LIMIT` | New live try-ons per closet per 24 h (default 10); reused outfits are free |
 | `SIM_ENABLED` | `true` turns `/sim` on in production, for the closet owner only (always on in development) |
 
-After MVP: `CRON_SECRET`, `FASHN_WEBHOOK_SECRET`, `ANTHROPIC_API_KEY`.
+| `ANTHROPIC_API_KEY` | Server only: Claude names garments from their photos (`claude-haiku-5-5`). Optional: without it photos are saved untagged |
+
+After MVP: `CRON_SECRET`, `FASHN_WEBHOOK_SECRET`.
 
 ### Run it
 

@@ -5,10 +5,15 @@ import { GarmentCategory, Id } from "./common";
 export const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
 /**
- * POST /api/garments/{id}/photo (multipart, field `photo`): stores the photo, removes the
- * background and returns the new photo_path (an app URL that redirects to a signed image)
+ * POST /api/garments/{id}/photo (multipart, field `photo`, optional `retag=1`): stores the
+ * photo, removes the background, names the garment with Claude, and returns the new
+ * photo_path (an app URL that redirects to a signed image)
  */
-export const GarmentPhotoResponse = z.object({ photo_path: z.string() });
+export const GarmentPhotoResponse = z.object({
+  photo_path: z.string(),
+  /** What Claude named it, when it filled in the details (null: not tagged, or the user's details stand) */
+  tagged: z.object({ name: z.string().nullable(), category: GarmentCategory.nullable() }).nullable(),
+});
 export type GarmentPhotoResponse = z.infer<typeof GarmentPhotoResponse>;
 
 /** PATCH /api/garments/{id}: details the user typed; sets tags_source to "user" */
