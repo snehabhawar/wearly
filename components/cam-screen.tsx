@@ -236,7 +236,7 @@ export function CamScreen() {
             onChange={(e) => setMode(e.target.value as Mode)}
             className="h-11 rounded-xl border border-line bg-card px-3 text-[15px] font-medium tracking-normal text-ink normal-case"
           >
-            <option value="new">Of new pieces only</option>
+            <option value="new">New pieces</option>
             <option value="every">Every time</option>
           </select>
         </label>
