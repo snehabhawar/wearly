@@ -13,6 +13,7 @@ import { DEFAULT_DRESS, type PlanEvent } from "./demo-events";
  *  7. hangers without a photographed garment fill in as mystery picks
  *  8. a short, warm reason per day
  * When nothing fits a slot, rules 3 then 4 relax before a mystery pick steps in.
+ * An event with an `outfit` overrides all of this for its day: exactly those garments, if on their hangers.
  */
 
 /** Below this high, the day gets an outer layer */
@@ -120,6 +121,25 @@ export function planWeek(input: {
       items.push({ slot, garmentId: g.id, hangerId: g.hangerId, mystery: isMystery });
     };
 
+    // An outfit picked ahead for an event: those garments and nothing else. A mystery
+    // garment (no category yet) takes the first free slot of top, then bottom.
+    const ahead = events.find((e) => e.outfit?.length);
+    const pinned = (ahead?.outfit ?? []).map((id) => available.find((g) => g.id === id)).filter((g) => g !== undefined);
+    if (ahead && pinned.length > 0) {
+      for (const g of pinned) {
+        const slot = g.category ?? (["top", "bottom"] as const).find((s) => !items.some((it) => it.slot === s));
+        if (slot && !items.some((it) => it.slot === slot)) add(slot, g, g.category === null);
+      }
+      for (const item of items) lastUsed.set(item.garmentId, i);
+      days.push({
+        day,
+        events,
+        items,
+        reason: [skyFor(weather, false), `Picked ahead for ${ahead.title}.`].filter(Boolean).join(" "),
+      });
+      continue;
+    }
+
     // Rule 1: a one-piece wins when it outranks the top and bottom it would replace
     const onePiece = pick("one_piece", taken);
     const top = pick("top", taken);
@@ -163,15 +183,7 @@ function reasonFor(input: {
   const byId = new Map(input.garments.map((g) => [g.id, g]));
   const named = (id: string) => byId.get(id)?.name ?? "this piece";
 
-  const sky = !weather
-    ? null
-    : weather.rain
-      ? "Rain on the way, so there's a layer."
-      : weather.high_c < LAYER_BELOW_C
-        ? "Cool out, so there's a layer."
-        : weather.high_c >= 24
-          ? "Warm and dry."
-          : "Mild and dry.";
+  const sky = skyFor(weather, items.some((it) => it.slot === "outer"));
 
   const kept = items.find((it) => input.inChallenge.has(it.garmentId));
   const mystery = items.find((it) => it.mystery);
@@ -191,4 +203,12 @@ function reasonFor(input: {
   else why = "Comfortable pieces for an easy day.";
 
   return [sky, why].filter(Boolean).join(" ");
+}
+
+/** The weather half of a day's reason; mentions the layer only when the outfit has one */
+function skyFor(weather: ForecastDay | undefined, layered: boolean): string | null {
+  if (!weather) return null;
+  if (weather.rain) return layered ? "Rain on the way, so there's a layer." : "Rain on the way.";
+  if (weather.high_c < LAYER_BELOW_C) return layered ? "Cool out, so there's a layer." : "Cool out.";
+  return weather.high_c >= 24 ? "Warm and dry." : "Mild and dry.";
 }

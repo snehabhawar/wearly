@@ -92,6 +92,43 @@ describe("planWeek", () => {
     expect(monday.reason).toContain("Dressed for presentation.");
   });
 
+  it("dresses an event in the outfit picked ahead for it, with no extra layer", () => {
+    const jacket = g("top", { formality: 2 });
+    const trousers = g("bottom");
+    const favourite = g("top", { formality: 4 });
+    const coat = g("outer");
+    const events = [
+      [{ title: "Innovation Challenge Final", time: "17:00", dress: 4 as const, outfit: [jacket.id, trousers.id] }],
+      ...noEvents.slice(1),
+    ];
+    const cold = Array.from({ length: 7 }, () => weather(5));
+    const [monday] = plan([jacket, trousers, favourite, coat, g("bottom")], { events, forecast: cold });
+    expect(monday.items.map((i) => [i.slot, i.garmentId])).toEqual([
+      ["top", jacket.id],
+      ["bottom", trousers.id],
+    ]);
+    expect(monday.reason).toBe("Cool out. Picked ahead for Innovation Challenge Final.");
+  });
+
+  it("fills a picked-ahead outfit's mystery garments into top, then bottom", () => {
+    const a = g(null);
+    const b = g(null);
+    const events = [[{ title: "Final", time: null, dress: 4 as const, outfit: [a.id, b.id] }], ...noEvents.slice(1)];
+    const [monday] = plan([a, b, g("top"), g("bottom")], { events });
+    expect(monday.items.map((i) => [i.slot, i.garmentId, i.mystery])).toEqual([
+      ["top", a.id, true],
+      ["bottom", b.id, true],
+    ]);
+  });
+
+  it("plans normally when the picked-ahead garments are off their hangers", () => {
+    const away = g("top", { away: true });
+    const events = [[{ title: "Final", time: null, dress: 3 as const, outfit: [away.id] }], ...noEvents.slice(1)];
+    const [monday] = plan([away, g("top"), g("bottom")], { events });
+    expect(monday.items.some((i) => i.garmentId === away.id)).toBe(false);
+    expect(monday.items).toHaveLength(2);
+  });
+
   it("keeps out-of-season pieces for when nothing else fits", () => {
     const summer = g("top", { seasons: ["summer"] });
     const fall = g("top", { seasons: ["fall", "winter"] });

@@ -167,6 +167,8 @@ Rule-based, pure TS with tests. Called from `POST /api/plans/generate` (and a Su
 7. Hangers without a photo can be used as **mystery picks** for slots where the category is unknown.
 8. Write a short `reason` for each day, in the app's warm, non-judgmental tone.
 
+An event can carry an `outfit` (garment IDs picked ahead, e.g. the Innovation Challenge Final on Wednesday: garments 19 and 20). That day gets exactly those garments when they're on their hangers, with no added layer; a mystery garment takes the first free slot of top, then bottom. If none are available, the rules above plan the day as usual.
+
 **Learning (after MVP):** swaps and skips lower a garment's score for similar contexts; plan vs. actual comes from comparing `plan_items` with `wears`.
 
 ## Swipe deck
