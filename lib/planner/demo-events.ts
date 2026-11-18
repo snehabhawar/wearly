@@ -18,7 +18,7 @@ export const DEMO_WEEK_EVENTS: PlanEvent[][] = [
     { title: "Gym", time: "7:00", dress: 1 },
     { title: "Client call", time: "14:00", dress: 3 },
   ],
-  [{ title: "Lunch with Mai", time: "12:30", dress: 2 }],
+  [{ title: "Innovation Challenge Final", time: "12:30", dress: 4 }],
   [{ title: "Dinner out", time: "19:30", dress: 3 }],
   [{ title: "Presentation", time: "10:00", dress: 4 }],
   [{ title: "Party", time: "20:00", dress: 3 }],

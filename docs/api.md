@@ -190,7 +190,7 @@ On `dev` (built early, after-MVP scope): the photo and details endpoints below e
 | `POST /api/plans/{id}/lights` | `{ day: "2026-10-26" }` | Pushes `purple/steady` for that day's hangers and turns other purple hangers off. `202 { command_ids: number[], hangers: number[] }`. In the MVP, the Plan screen's "Light up tomorrow" button calls it; after MVP, a morning cron does too |
 | `PATCH /api/plan-items/{id}` *(after MVP)* | `{ garment_id }` or `{ status: "skipped" }` | Swap a piece or skip a day. Recorded as planner feedback |
 
-`generate` only returns the plan id. The UI reads the plan from `plans` and `plan_items` with supabase-js, so a plan has one shape. `plans.forecast` is `jsonb`; its shape is the `Forecast` schema in `lib/api/plans.ts`: per day `{ day, high_c, low_c, rain, condition: "clear" | "cloudy" | "rain" | "snow", summary }`.
+`generate` only returns the plan id. The UI reads the plan from `plans` and `plan_items` with supabase-js, so a plan has one shape. `plans.forecast` is `jsonb`; its shape is the `Forecast` schema in `lib/api/plans.ts`: per day `{ day, high_c, low_c, rain, condition: "clear" | "cloudy" | "rain" | "snow", summary }`. Temperatures are stored in °C; the app shows them in °F (`formatTemp` in `lib/format.ts`).
 
 ### Swipe
 

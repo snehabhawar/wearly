@@ -6,7 +6,7 @@ import { GarmentThumb } from "@/components/garment-thumb";
 import { LedDot } from "@/components/led-dot";
 import { Button } from "@/components/ui/button";
 import type { ForecastDay } from "@/lib/api";
-import { formatHangers, mondayOf } from "@/lib/format";
+import { formatHangers, formatTemp, mondayOf } from "@/lib/format";
 import { addDays } from "@/lib/planner/plan";
 import type { PlanDay } from "@/lib/queries/plan";
 import { useCurrentCloset } from "@/lib/queries/use-current-closet";
@@ -211,7 +211,7 @@ function DayColumn({
         {d.weather && Icon && (
           <span className="flex flex-col items-end gap-0.5 text-[13px] font-semibold">
             <Icon aria-label={d.weather.summary} className="size-5" strokeWidth={1.9} />
-            {d.weather.high_c}°
+            {formatTemp(d.weather.high_c)}
           </span>
         )}
       </button>

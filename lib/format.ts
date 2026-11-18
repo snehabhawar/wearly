@@ -27,6 +27,11 @@ export function formatSince(date: string, today: string): string {
 }
 
 /** "$2.05" */
+/** A temperature for display: the forecast and planner work in °C, the app shows °F */
+export function formatTemp(celsius: number): string {
+  return `${Math.round((celsius * 9) / 5 + 32)}°F`;
+}
+
 export function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }

@@ -9,7 +9,7 @@ import { SignOutButton } from "@/components/sign-out-button";
 import { SwipeScreen } from "@/components/swipe-screen";
 import { Button } from "@/components/ui/button";
 import type { ForecastDay } from "@/lib/api";
-import { formatHangers, formatSince, mondayOf } from "@/lib/format";
+import { formatHangers, formatSince, formatTemp, mondayOf } from "@/lib/format";
 import { isWaiting, type ClosetItem } from "@/lib/queries/closet";
 import type { PlanDay } from "@/lib/queries/plan";
 import { useCloset } from "@/lib/queries/use-closet";
@@ -164,7 +164,7 @@ function WeatherChip({ weather }: { weather: ForecastDay }) {
   return (
     <span className="flex items-center gap-2 self-start rounded-full bg-card/70 px-3 py-2 text-[13px] font-medium md:self-auto md:bg-linear-120 md:from-plum-soft md:to-peach-soft md:px-4 md:py-2.5 md:text-sm">
       <Icon aria-hidden className="size-4.5 text-plum" strokeWidth={1.8} />
-      {weather.high_c}° high · {weather.summary.toLowerCase()}
+      {formatTemp(weather.high_c)} high · {weather.summary.toLowerCase()}
     </span>
   );
 }

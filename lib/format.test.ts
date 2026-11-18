@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { formatCents, formatHangers, formatMonth, formatMonthDay, formatSince, localMidnight, mondayOf, todayIn } from "./format";
+import { formatCents, formatHangers, formatTemp, formatMonth, formatMonthDay, formatSince, localMidnight, mondayOf, todayIn } from "./format";
 
 test("today is the closet's local date, not UTC", () => {
   // 02:30 UTC on Oct 28 is still the evening of Oct 27 in New York
@@ -34,4 +34,10 @@ test("mondayOf", () => {
 
 test("formatHangers", () => {
   expect([[3], [1, 17], [1, 11, 18]].map(formatHangers)).toEqual(["Hanger 3", "Hangers 1 and 17", "Hangers 1, 11 and 18"]);
+});
+
+test("temperatures show in Fahrenheit, rounded", () => {
+  expect(formatTemp(0)).toBe("32°F");
+  expect(formatTemp(16)).toBe("61°F");
+  expect(formatTemp(-3)).toBe("27°F");
 });

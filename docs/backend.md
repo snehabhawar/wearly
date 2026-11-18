@@ -158,7 +158,7 @@ Rule-based, pure TS with tests. Called from `POST /api/plans/generate` (and a Su
 
 **Rules, in order:**
 
-1. One outfit per day: `top + bottom` or `one_piece`, plus `outer` when the high is under about 16 °C or rain is forecast.
+1. One outfit per day: `top + bottom` or `one_piece`, plus `outer` when the high is under about 16 °C (61 °F; the planner works in °C, the app shows °F) or rain is forecast.
 2. Exclude garments that are out, in the laundry, or `let_go` / `rehomed`.
 3. Match the dress level: the event's dress code against `formality` (±1).
 4. Respect the weather: season tags and temperature band.
