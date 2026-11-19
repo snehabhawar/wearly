@@ -1,31 +1,8 @@
 # Frontend
 
-One Next.js app (App Router, TypeScript) serves the homepage, the app on phone and desktop, the NFC landing pages and the dev simulator. It ships as a **PWA**. Every screen is designed in the [Wearly App Mockup](https://claude.ai/artifact/E8aWsZqMko2VrhDzJ8jNUa), so use it as the visual spec.
+One Next.js app (App Router, TypeScript) serves the homepage, the app on phone and desktop, the NFC landing pages and the dev simulator. It ships as a **PWA**. Every screen follows a design mockup, the visual spec for colors, layout and components.
 
-> Status: on `dev`: `/login`, Today, Closet (live, with Find it), item detail, Swipe, Plan, Style it, the homepage and `/sim`. The MVP screens are all built.
-
-## MVP scope
-
-**In the MVP**
-- Phone screens:
-  - Today (outfit + "waiting" card)
-  - Closet + item detail with Find it
-  - Plan: phone week view with "Light up tomorrow"
-  - Swipe, with the let-go sheet
-  - Style it, showing pre-generated images (live FASHN try-on built early)
-- `/sim`
-- A short homepage: hero, how it works, the lights, link into the app
-- `/login` with the seeded demo account
-- PWA manifest
-- **Desktop layouts, built first** (sidebar, Closet master-detail, 7-column Plan, Today + deck), with the phone layout below 768 px
-
-**After MVP**
-- `/h/[hanger]` NFC pages and photo capture
-- Live try-on
-- "Looks like you wore…" confirm card
-- Swapping plan pieces
-- Full homepage with waitlist
-- Service worker and push notifications
+> Built: the homepage, `/login`, Today, Closet (with Find it), item detail, Plan, Swipe, Style it (with live try-on), the closet camera `/cam` and `/sim`, on phone and desktop. Sections marked *after MVP* are planned, not built yet.
 
 ## Routes
 
@@ -132,7 +109,7 @@ Base primitives (Button, Sheet, Dialog, Toast, Tabs) come from shadcn/ui, restyl
 - **Reads:** supabase-js with the user's session, through TanStack Query hooks in `lib/queries/`, for example `useHangers()`, `useGarmentStats()`, `usePlan(weekStart)`. RLS does the scoping.
 - **Writes with side effects:** `fetch('/api/...')` through typed helpers in `lib/api/client.ts`, which share Zod schemas with the route handlers.
 - **Realtime:** one subscription per closet (`hangers`, `absences`, `wears`, `commands`; plus `ai_jobs` after MVP) that updates or invalidates the matching queries. This is what makes the grid update live when a garment is lifted.
-- **Server components:** use them for static and marketing pages and for the shell. Don't put data-dependent business logic in them (no server actions with side effects). That keeps a static Capacitor build possible later; see the README.
+- **Server components:** use them for static and marketing pages and for the shell. Don't put data-dependent business logic in them (no server actions with side effects). That keeps a static Capacitor build possible later; see [development.md](development.md).
 
 ## Copy and tone
 

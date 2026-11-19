@@ -2,27 +2,14 @@
 
 Two audiences use this API:
 
-- **The hub** (the simulator now, the ESP32 later) sends sensor events and fetches light commands. This is the contract between the firmware and the app. Change it only with both sides agreeing.
+- **The hub** (the ESP32 hub, or the simulator) sends sensor events and fetches light commands. This is the contract between the firmware and the app. Change it only with both sides agreeing.
 - **The app** (phone and desktop) calls endpoints for actions with side effects. Plain reads go straight to Supabase with RLS; see [Reads vs. writes](#reads-vs-writes).
 
-All endpoints are Next.js route handlers under `app/api/`. Request and response bodies are JSON, validated with Zod schemas from `lib/api/`. **Those schemas are the contract between frontend and backend:** route handlers parse requests with them, and the UI imports their types. Change a schema and this doc in the same PR, reviewed by both sides.
+All endpoints are Next.js route handlers under `app/api/`. Request and response bodies are JSON, validated with Zod schemas from `lib/api/`. **Those schemas are the contract between frontend and backend:** route handlers parse requests with them, and the UI imports their types. Change a schema and this doc in the same change.
 
 Conventions for values: dates are `YYYY-MM-DD` in the closet's timezone, timestamps are ISO 8601 with offset, money is in cents, row ids are uuids, and hangers are addressed by **number** in URLs and hub payloads.
 
-> Status: on `dev`, every MVP endpoint here is implemented: the hub API, the dev-only `/api/sim/*` routes, Find it, swipe and plan. Endpoints marked *after MVP* are still specification. `requests/hub.http` has runnable examples.
-
-## MVP scope
-
-| In the MVP | After MVP |
-| --- | --- |
-| `POST /api/hub/events`, `GET /api/hub/commands`, `POST /api/hub/commands/ack` | `POST /api/hangers/{number}/assign` |
-| `POST /api/hangers/{number}/find` | `PATCH /api/garments/{id}`, `POST /api/garments/{id}/photo` |
-| `POST /api/plans/generate`, `POST /api/plans/{id}/lights` | `POST /api/wears`, `POST /api/outfits/{id}/confirm` |
-| `GET /api/swipe/deck`, `POST /api/swipe/decisions` | `PATCH /api/plan-items/{id}` |
-| `POST /api/sim/events`, `POST /api/sim/reset` (dev only) | `POST /api/tryon`, `GET /api/tryon/{job_id}` |
-| | `POST /api/webhooks/fashn`, `POST /api/cron/*` |
-
-The hub contract is complete in the MVP, so firmware can build against it now.
+> Built: the hub API, Find it, plan, swipe, garment photos, try-on and the dev-only `/api/sim/*` routes. Endpoints marked *after MVP* are planned, not built yet. [requests/hub.http](../requests/hub.http) has runnable examples.
 
 ## Conventions
 
@@ -172,7 +159,7 @@ All app endpoints act on the caller's closet. A user with several closets passes
 
 ### Garments
 
-On `dev` (built early, after-MVP scope): the photo and details endpoints below exist; the rest is still spec.
+The photo and details endpoints below are built; the rest is planned.
 
 | Method & path | Body | Does |
 | --- | --- | --- |
@@ -206,7 +193,7 @@ The deck is an endpoint, not a plain read, because it calls the seasonal-idle lo
 
 ### Try-on (FASHN, live)
 
-Built early (after-MVP scope). Hand-picked looks still show their pre-generated images on the demo model; "Your mix", and every look once the user has their own model photo, is dressed live.
+Hand-picked looks still show their pre-generated images on the demo model; "Your mix", and every look once the user has their own model photo, is dressed live.
 
 | Method & path | Body | Does |
 | --- | --- | --- |

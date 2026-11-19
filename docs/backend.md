@@ -2,30 +2,7 @@
 
 The backend is Supabase (Postgres, Auth, Storage, Realtime, pg_cron) plus Next.js route handlers on Vercel. The domain logic (wear engine, planner, deck, AI clients) lives in `lib/` as plain TypeScript with no Next.js imports.
 
-> Status: the MVP backend is implemented on `dev`: schema, RLS and views, the wear engine, hub ingest and the sweep, the swipe deck and the planner. Sections marked *after MVP* are still specification. Endpoint shapes are in [api.md](api.md).
-
-## MVP scope
-
-The MVP covers the demo script and nothing more. Everything marked *after MVP* below stays as the long-term spec.
-
-**In the MVP**
-- Tables: `closets` (with `owner_id`), `devices`, `hangers`, `garments`, `hanger_assignments`, `sensor_events`, `absences`, `wears`, `plans`, `plan_items`, `swipe_decisions`, `commands`; views `garment_stats`, `closet_summary`
-- RLS by closet owner (`owner_id = auth.uid()`)
-- Hub ingest in `lib/hub/`, and the wear engine with `real` and `demo` profiles
-- A sweep that runs on ingest and on the hub's command polls, with no cron
-- A rule-based planner using Open-Meteo, hard-coded calendar events and wear history
-- Swipe deck, decisions, rehoming and impact counter
-- Demo garment photos and pre-generated try-on images as static files in `public/demo/`
-- Seed data and 3 months of fake history
-
-**After MVP**
-- Shared closets (`closet_members`), `profiles`, `outfits`, `calendar_events`
-- Built early: storage buckets, the photo pipeline (background removal), live FASHN try-on and `ai_jobs`
-- Outfit inference
-- pg_cron sweep and morning lights
-- Replay script
-- Planner learning
-- 30-day challenge resurfacing
+> Built: schema, RLS and views, the wear engine, hub ingest and the sweep, the swipe deck, the planner, the photo pipeline and live try-on. Sections marked *after MVP* are planned, not built yet. Endpoint shapes are in [api.md](api.md).
 
 ## Principles
 
@@ -194,7 +171,7 @@ Live try-ons go through `ai_jobs` (migration `20261115120000_live_tryon`), so th
 
 ### FASHN try-on (`lib/tryon/`, `lib/fashn/`)
 
-Built early (after-MVP scope). Runs as the signed-in user, under RLS.
+Runs as the signed-in user, under RLS.
 
 1. **Outfit rules** (`lib/tryon/outfit.ts`, shared with the UI): one garment per category, no top or bottom with a one-piece, at most 3 pieces. Pieces are dressed bottoms → tops → outerwear. Style it suggests pairings per slot: active, photographed garments of that category, pieces from the hand-picked looks first, then the most worn.
 2. **Cache:** `POST /api/tryon` hashes the model photo path (`demo` or the user's `closets.model_photo_path`) and each garment's `id:photo_path` into `cache_key`. A done job with that key, or one still running, is returned instead of paying again.
